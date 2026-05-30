@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# td-new — scaffold a new TouchDesigner project folder.
+#
+# Usage:
+#   td-new <project-name>
+#
+# What it does (idempotent):
+#   1. Creates ./<project-name>/ with .gitignore + .claude/settings.local.json
+#   2. Initializes a git repo (if not already one)
+#   3. Prints next steps for TD-side setup
+#
+# What it does NOT do:
+#   - Create the .toe file (binary; you do it from TouchDesigner)
+#   - Drop in Embody.tox (fetch the latest from Embody's own source/palette)
+#   - Set up .venv (Embody installs its own deps on first run)
+#   - Generate CLAUDE.md / AGENTS.md / .claude/skills/ (Embody does it when
+#     you set Aiclient='claude' on the Embody COMP)
+
+set -u
+
+TEMPLATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/templates/td-project"
+
+# ─── Color helpers (graceful no-color fallback) ───────────────────────
+if [ -t 1 ] && command -v tput >/dev/null 2>&1; then
+  GREEN=$(tput setaf 2); YELLOW=$(tput setaf 3); RED=$(tput setaf 1)
+  BOLD=$(tput bold);     DIM=$(tput dim);        RESET=$(tput sgr0)
+else
+  GREEN=""; YELLOW=""; RED=""; BOLD=""; DIM=""; RESET=""
+fi
+
+ok()   { echo "  ${GREEN}✓${RESET} $1"; }
+skip() { echo "  ${YELLOW}↷${RESET} $1"; }
+fail() { echo ""; echo "  ${RED}✗${RESET} $1"; echo ""; exit 1; }
+
+# ─── Arg check ─────────────────────────────────────────────────────────
+if [ $# -lt 1 ] || [ -z "${1:-}" ]; then
+  echo ""
+  echo "${BOLD}td-new${RESET} — scaffold a new TouchDesigner project"
+  echo ""
+  echo "Usage: td-new <project-name>"
+  echo ""
+  echo "Creates ./<project-name>/ with .gitignore + .claude/settings.local.json,"
+  echo "initializes git, prints next steps."
+  echo ""
+  exit 1
+fi
+
+NAME="$1"
+TARGET="$(pwd)/${NAME}"
+
+if [ -e "${TARGET}" ] && [ "$(ls -A "${TARGET}" 2>/dev/null)" ]; then
+  echo ""
+  echo "  ${YELLOW}!${RESET} ${TARGET} already exists and is non-empty."
+  echo "    Bailing out — choose a different name or clean the folder first."
+  echo ""
+  exit 1
+fi
+
+# ─── Validate template ─────────────────────────────────────────────────
+if [ ! -d "${TEMPLATE_DIR}" ]; then
+  fail "Template directory missing: ${TEMPLATE_DIR}"
+fi
+
+# ─── Create + populate ─────────────────────────────────────────────────
+echo ""
+echo "${BOLD}Scaffolding${RESET} ${TARGET}"
+echo ""
+
+mkdir -p "${TARGET}/.claude" || fail "Could not create ${TARGET}"
+ok "created ${TARGET}/"
+
+cp "${TEMPLATE_DIR}/.gitignore" "${TARGET}/.gitignore"
+ok "wrote .gitignore"
+
+cp "${TEMPLATE_DIR}/.claude/settings.local.json" "${TARGET}/.claude/settings.local.json"
+ok "wrote .claude/settings.local.json (canonical Envoy perms allowlist)"
+
+# ─── git init ─────────────────────────────────────────────────────────
+cd "${TARGET}"
+if [ ! -d .git ]; then
+  git init -b main >/dev/null 2>&1 && ok "git initialized (branch: main)"
+else
+  skip "git repo already exists"
+fi
+
+# ─── Done ─────────────────────────────────────────────────────────────
+echo ""
+echo "${GREEN}${BOLD}✓ Scaffold ready.${RESET}"
+echo ""
+echo "${BOLD}Next steps (TouchDesigner side):${RESET}"
+echo ""
+echo "  1. Open TouchDesigner."
+echo "  2. ${DIM}File → Save As…${RESET} → ${TARGET}/${NAME}.toe"
+echo "  3. Drag Embody.tox into /project1 (or the network root)."
+echo "     ${DIM}Get the latest Embody.tox from Embody's source/palette —${RESET}"
+echo "     ${DIM}see references/project-bootstrap.md for the canonical link.${RESET}"
+echo "  4. On the Embody COMP: set ${BOLD}Aiclient${RESET} = ${BOLD}claude${RESET}."
+echo "     Embody generates CLAUDE.md, AGENTS.md, .claude/skills/, .claude/rules/."
+echo "  5. Save (${BOLD}⌘S${RESET}). The .mcp.json appears once TD is running."
+echo "  6. ${DIM}cd ${TARGET} && claude${RESET}"
+echo ""
+echo "Auto-sync hook will check ~/.claude/skills/touch-designer-skill for new"
+echo "learnings on every session start. Silent if nothing new."
+echo ""
