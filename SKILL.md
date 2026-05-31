@@ -109,16 +109,14 @@ Full text in `rules/`. One-line summaries:
 10. **Never auto-modify heavy assets** for perf — report, recommend, wait.
 11. **Don't touch dialed-in knobs** when adding a new feature — modify only what the new feature requires.
 
-Full rationale: `references/operational-discipline.md`.
-
 ## Approach guidelines
 
 - Hypothesis → evidence → fix. State the hypothesis before acting.
 - Define success criteria up front; loop until verified.
 - Fail loud: "done" is wrong if anything was silently skipped.
 - Surface conflicts; don't silently average between two patterns.
-- Two failed attempts on a sub-step → switch to simpler fallback, report which path. Full pattern: `references/operational-discipline.md` § Fallback.
-- Start weak on constrained platforms (M1, browser, mobile). Prove the technique, raise quality after. Full pattern: `references/start-weak-protocol.md`.
+- Two failed attempts on a sub-step → switch to simpler fallback, report which path. Full pattern: `references/approach-patterns.md` § Fallback.
+- Start weak on constrained platforms (M1, browser, mobile). Prove the technique, raise quality after. Full pattern: `references/approach-patterns.md` § Start weak.
 
 ## Starting a new TD project
 
