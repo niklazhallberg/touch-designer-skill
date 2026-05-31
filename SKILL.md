@@ -1,5 +1,5 @@
 ---
-name: touchdesigner
+name: touch-designer-skill
 description: Builds and modifies TouchDesigner projects using Embody (externalization to git-trackable files) + Envoy MCP (live operator manipulation from Claude). Covers POP/SOP/TOP/CHOP/DAT operator creation, network layout, TDN-strategy COMPs, GLSL shaders in TD, hand-tracking, MediaPipe components, Gaussian splat workflows. TRIGGER when user mentions TouchDesigner, TD, .toe, .tox, .tdn, Envoy MCP, Embody, "operator", "network" in a TD context, or when CWD contains a .toe file or .embody/ directory. SKIP for Lens Studio, Unity, Unreal, Blender, Houdini, generic Python, or visual programming without TD context.
 ---
 
