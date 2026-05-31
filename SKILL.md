@@ -79,6 +79,17 @@ Each skill has YAML frontmatter that triggers it. The central versions live here
 | `mcp-tools-reference` | Before the first MCP call in a session |
 | `td-api-reference` | Before writing TD Python (`execute_python`, DAT scripts) |
 
+## References (load-on-demand by topic)
+
+Knowledge banks beyond the skills above. Load when the trigger fires; the file's first paragraph confirms whether you've matched the right one. Grows as production work surfaces new patterns via the growth protocol.
+
+| Topic | Trigger | File |
+|---|---|---|
+| **TD 2025 new operators** | When choosing a TOP for compositing, color/HDR work, or any visual-pipeline decision in TD 2025+ — check whether a 2025 operator now solves it better than the pre-2025 pattern training data would suggest | `references/td-2025-operators.md` |
+| **POPs / point-cloud / GPU particles / spline work** | When the task involves points, particles, point clouds, scatter/instancing, or spline geometry — check this for the right POP **before** building SOP chains; TD 2025 likely has a POP for it | `references/pops.md` |
+
+(Other references like `mac-gotchas.md`, `td-gotchas.md`, `td-architecture.md`, `components/gaussian-splatting-mac.md`, `components/mediapipe.md`, `glsl-patterns.md`, `project-bootstrap.md`, `skill-growth-protocol.md` exist and load on topic match — they will be added to this table as their trigger conditions are formalized.)
+
 ## Operational rules (locked)
 
 Full text in `rules/`. One-line summaries:
