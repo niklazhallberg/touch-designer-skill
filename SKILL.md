@@ -87,6 +87,7 @@ Knowledge banks beyond the skills above. Load when the trigger fires; the file's
 |---|---|---|
 | **TD 2025 new operators** | When choosing a TOP for compositing, color/HDR work, or any visual-pipeline decision in TD 2025+ — check whether a 2025 operator now solves it better than the pre-2025 pattern training data would suggest | `references/td-2025-operators.md` |
 | **POPs / point-cloud / GPU particles / spline work** | When the task involves points, particles, point clouds, scatter/instancing, or spline geometry — check this for the right POP **before** building SOP chains; TD 2025 likely has a POP for it | `references/pops.md` |
+| **Audio-reactive visuals / audio input** | When the task involves audio-driven visuals, audio input, or beat/tempo — load this. **And remember the BlackHole routing for system audio on Mac** | `references/audio-reactive.md` |
 
 (Other references like `mac-gotchas.md`, `td-gotchas.md`, `td-architecture.md`, `components/gaussian-splatting-mac.md`, `components/mediapipe.md`, `glsl-patterns.md`, `project-bootstrap.md`, `skill-growth-protocol.md` exist and load on topic match — they will be added to this table as their trigger conditions are formalized.)
 
