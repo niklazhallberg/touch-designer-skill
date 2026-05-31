@@ -104,6 +104,49 @@ The Envoy server exposes **~48 tools** as of Embody v5.0.413. Other sources drif
 
 ---
 
+## Swapping a renderTOP's camera silently breaks bindings on the old camera
+
+**Source:** production session 2026-05-31 (M1 Pro, Gaussian splat scene with CameraExt-extended cameraViewport + bare-camera swap) | Date: 2026-05-31 | **Confidence:** HIGH (user-observed failure and fix in the same session — the bound feature visibly stopped working in the rendered view, mirror-binding on the new camera restored it)
+
+Re-pointing `renderTOP.par.camera` from one cameraCOMP to another transfers ONLY which transform/lens drives the render. Any **bindings** other ops had pointing at the old camera — parameter expressions, CHOP exports, drag-targets — are **not** moved. Those bindings continue to fire; they keep writing to the (no-longer-rendered) old camera's params. The visible effect is that a previously-working interactive control (zoom dolly, look-at, light tracking) appears "off" in the rendered view, while the binding remains alive in the network.
+
+**Common signature:** a pinch-driven `Pivotdistance` (or similar) on a cameraViewport with CameraExt stops affecting the render when render switches to a new bare cameraCOMP. The pinch signal still fires, the matrix still updates, the renderTOP just isn't reading from that camera anymore. User notices immediately ("the zoom is off") and is right — the regression is silent in errors/warnings.
+
+**Rule for the agent (before any swap):** before changing `renderTOP.par.camera`, scan the project for expressions or CHOP exports targeting the OLD camera's path. For each match: decide whether to **mirror** the binding to the new camera, or accept the breakage and tell the user explicitly. The check is one MCP query; the cost of missing it is a silent feature regression.
+
+**Quick inventory (paste-ready):**
+
+```python
+# Find params whose expression references the old camera's path
+old_path = '/project1/.../oldCamera'
+hits = []
+for child in op('/project1').findChildren(maxDepth=10):
+    for p in child.pars():
+        expr = p.expr or ''
+        if old_path in expr:
+            hits.append((child.path, p.name, expr))
+        if p.mode == ParMode.EXPORT:
+            hits.append((child.path, p.name, 'EXPORT'))
+return hits
+```
+
+**Check first when:**
+
+- About to change `renderTOP.par.camera`
+- A previously-working interactive control (zoom, dolly, look-at) appears inactive after a camera or render-graph change
+- Migrating from a CameraExt-driven camera to a bare cameraCOMP (or vice versa)
+- Adding a parallel camera intended to coexist with the original
+
+**Don't:**
+
+- Assume bindings track the *rendered* camera — they track the cameraCOMP they reference by path
+- Trust that "the render still renders" means "all controls still work" — the failure is silent
+- Skip the inventory query because "I know what's connected" — the network may have bindings added across sessions
+
+Cross-link: `skill-growth-protocol.md § Generalization rule` for the protocol that surfaced this lesson; `td-architecture.md` for the "errors=0 ≠ correct" principle that this gotcha is a textbook case of.
+
+---
+
 ## Known gaps (deliberately empty)
 
 These are publicly unresolvable or untested as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
