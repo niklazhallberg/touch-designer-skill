@@ -1,6 +1,9 @@
 ---
 name: touch-designer-skill
 description: Builds and modifies TouchDesigner projects using Embody (externalization to git-trackable files) + Envoy MCP (live operator manipulation from Claude). Covers POP/SOP/TOP/CHOP/DAT operator creation, network layout, TDN-strategy COMPs, GLSL shaders in TD, hand-tracking, MediaPipe components, Gaussian splat workflows. TRIGGER when user mentions TouchDesigner, TD, .toe, .tox, .tdn, Envoy MCP, Embody, "operator", "network" in a TD context, or when CWD contains a .toe file or .embody/ directory. SKIP for Lens Studio, Unity, Unreal, Blender, Houdini, generic Python, or visual programming without TD context.
+compatibility: Requires TouchDesigner 2025.32820+, Embody.tox v5.0.413+, Envoy MCP server on localhost:9870
+metadata:
+  version: "0.2.0"
 ---
 
 # TouchDesigner skill
@@ -98,6 +101,7 @@ Knowledge banks beyond the skills above. Load when the trigger fires; the file's
 | **MediaPipe component** | When using `torinmb/mediapipe-touchdesigner` for hand / face / pose tracking, OR when tracking overlay drifts ≥3 frames behind live camera. **Insert Cache TOP on the camera branch** to resync; **disable unused detection tabs** to recover FPS. Mac prereq: Full Disk Access (see `mac-gotchas.md`) | `references/components/mediapipe.md` |
 | **Project bootstrap (central ↔ project setup)** | When scaffolding a new TD project, when an Embody-generated file conflicts with the central canonical version, or when a colleague needs to install the skill on a new machine. **Use `scripts/td-new`** — don't hand-stitch the per-project layout | `references/project-bootstrap.md` |
 | **Skill growth protocol** | When you've just solved something non-obvious in production — before you move on, check this for the pre-ask gates (observed-failure-and-fix, one-sentence-rule, user-novelty). **All three YES → in-flow ask; any NO → silent drop.** This is where the skill's biography grows | `references/skill-growth-protocol.md` |
+| **Text TOP rendering / fonts** | Before configuring fonts / sizes / weights / styling on a Text TOP — OR when text renders pixelated, wrong-size, or oddly-spaced on Mac. **`keepfontratio=True` silently ignores `fontsizey`** (fontsizex is master); **Automatic Display Method has documented Mac GPU bugs at >10pt — use `dispmethod='scalable'`**; **`strokewidth` only affects `dispmethod='stroke'`** (no-op in Polygon/Bitmap/Scalable). Plus Spec DAT pattern for per-row styling | `references/text-top.md` |
 
 ## Operational rules (locked)
 
