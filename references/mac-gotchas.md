@@ -1,6 +1,6 @@
 # macOS gotchas (Apple Silicon / MoltenVK)
 
-TouchDesigner on macOS runs over MoltenVK (Vulkan-to-Metal translation), not native Metal. Apple Silicon is the first-class macOS target as of 2025; Intel Macs require a discrete AMD GPU. The items below caused real lost hours in production work and should be checked before debugging anywhere else.
+TouchDesigner's render backend is **Vulkan on all platforms**; on macOS, MoltenVK translates Vulkan → Metal. **OpenGL was removed from TD in 2022** — any reference to "TD's OpenGL path" is outdated. Apple Silicon is the first-class macOS target as of 2025; Intel Macs require a discrete AMD GPU. **Custom Metal compute backends for custom operators are unsupported and crash-prone on Mac** (status as of mid-2025) — if a custom-op project needs GPU compute on macOS, use Vulkan-friendly paths, not Metal-direct ones. The items below caused real lost hours in production work and should be checked before debugging anywhere else.
 
 ---
 
@@ -34,7 +34,14 @@ macOS/MoltenVK caps GLSL at **16 input samplers per shader** in TD's compilation
 
 **Workaround:** rewrite the shader to use ≤16 samplers. The Tim Gerritsen Gaussian Splatting component's original Mac-incompatibility came from this exact cap.
 
-**Verified by user in production** (2026-05-30): observed during Gaussian splat tree work — Tim's `glslSplat_vertex` shader uses 17 samplers; M1 Pro rendered red/blue corruption. Worked around by forcing splats to white in-shader.
+**Reduction techniques (pick by data shape):**
+
+- **Texture arrays** (`sampler2DArray`): consolidate N similar 2D textures into one 2D array — single sampler binding, N slices, read with `texelFetch(sArray, ivec3(x, y, slice), 0)`. Fits when textures share dimensions and format and are addressed by an integer index.
+- **Texture buffers** (`samplerBuffer`): for large flat arrays of values (positions, scales, per-instance parameters), pack into a 1D buffer texture. Single sampler binding regardless of element count. Read with `texelFetch(sBuffer, index)`.
+- **Atlas packing:** stitch many small textures into one larger texture, use UV math to select tiles. Fewer samplers, more shader math.
+- **Remove redundant samplers:** the shader may declare inputs the project doesn't actually use. Read it carefully — sometimes 17 drops to 14 just by deleting unused fetches.
+
+**Verified by user in production** (2026-05-30): observed during Gaussian splat tree work — Tim's `glslSplat_vertex` shader uses 17 samplers; M1 Pro rendered red/blue corruption. Worked around by forcing splats to white in-shader. A proper structural fix (texture array consolidation) was not attempted — left as a future option if color fidelity becomes required.
 
 ---
 

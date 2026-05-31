@@ -4,6 +4,31 @@ Three component families, distinct maturity and Mac support. Trigger this refere
 
 ---
 
+## Pipeline split — splat CREATION vs splat RENDERING
+
+Gaussian splat work has **two distinct steps**; don't conflate them when picking tools.
+
+1. **Create** — produce a `.ply` (or newer `.spz`) splat file from input photos/video. This step lives OUTSIDE TouchDesigner.
+2. **Render** — load and display the splat inside TD. This is what the rest of this file covers.
+
+The components listed below (Tim Gerritsen, atarilover123, TDGS, yeataro, POP-based) are all **renderers**. They consume an existing `.ply`/`.spz` — none of them create one.
+
+### Creation tools
+
+- **vid2scene.com** — cloud service, free tier, one-click upload-and-train. **Verified by user in production** (used to create `RADON_Tree.ply` for the splat-tree work, May 2026). Licensing/pro-tier terms on their site; check before commercial use.
+- **OpenSplat** ([github.com/pierotofy/OpenSplat](https://github.com/pierotofy/OpenSplat)) — open source, AGPLv3, runs locally on Mac via Metal (`-DGPU_RUNTIME=MPS`). Commercial use permitted under AGPL terms. **Status: to verify** — not personally tested by the user. Practical caveats:
+  - Requires compiling from source: libtorch + OpenCV + Xcode toolchain
+  - Requires already-processed input (COLMAP or OpenSfM output) — not plug-and-play from raw video/photos
+  - M1 build process has not been confirmed by the user
+
+### Don't mix these up
+
+- **OpenSplat replaces vid2scene** — both produce splats from input data.
+- **OpenSplat does NOT replace TDGS** (or any other renderer in this file) — different layer of the pipeline. TDGS reads the output of either creator.
+- A "Mac-native Gaussian splat pipeline" needs ONE creator + ONE renderer; mixing creators or mixing renderers is fine, but you always need both.
+
+---
+
 ## Summary table
 
 | Component | Mac support | License | Recommended? |
