@@ -1,4 +1,4 @@
-# Skill Growth Protocol v0.1 (TouchDesigner skill)
+# Skill Growth Protocol v0.2 (TouchDesigner skill)
 
 Purpose: capture empirical learnings from real TD projects so the skill grows
 over time — in flow, not batched. Single-user today; structure is team-share
@@ -58,6 +58,27 @@ If no → rewrite until the answer is yes.
 
 > "macOS/MoltenVK GLSL compilation caps input samplers at 16. Shaders with 17+ samplers compile but render channel-swapped color (typically red/blue) with no compile error — diagnosis is visual, not compiler. Workarounds: (1) rewrite shader to ≤16 samplers, (2) force a constant color in-shader as creative workaround if color fidelity isn't required, (3) seek a community fork (e.g. atarilover123's GaussianSplat_TD reportedly does this for Tim Gerritsen's component — to verify)."
 
+## Pre-ask filters (silent) — all three must answer YES before any in-flow ask
+
+The grep check (§ "When you solve something via probe") is filter 0 — does the rule already exist? If not, three more silent gates run before the agent surfaces the discovery to the user. **Any NO drops the discovery silently** — no ask, no save-for-later, no CHANGELOG entry. The SKILL-DISCOVERIES path is reserved for "YES but bad timing," not "no signal at all."
+
+### Gate 1 — Did I observe both the failure AND the fix working?
+
+- **YES** requires: agent saw the failing state (error message, wrong output, perf metric below threshold) AND saw the post-fix state confirm the fix end-to-end.
+- **NO** when: fix wasn't empirically verified, the failure was inferred rather than seen, or the fix is "I think this might work / it compiled cleanly / didn't throw."
+
+### Gate 2 — Can I write the general rule in one sentence (≤25 words)?
+
+- **YES** requires: a single declarative sentence that names the trigger, the symptom, and the workaround. Write it mentally and count.
+- **NO** when: the finding has too many caveats, the conditions are too specific, or the agent finds itself starting "well, it depends on..."
+
+### Gate 3 — Did the user signal genuine novelty?
+
+- **YES** when: user expressed surprise ("åh!", "what?", "I didn't know that"), asked "why did that happen?" or "how do we avoid this next time?", OR the agent itself was wrong/blindsided and corrected by reality.
+- **NO** when: the work was routine and predictable, the fix was something the user already knew, or it was just a normal step in the build.
+
+All three YES → proceed to § In-flow ask. Any NO → silent drop, move on.
+
 ## In-flow ask — default
 
 When a discovery passes the grep check: say it DIRECTLY to the user, in the middle of the flow.
@@ -107,6 +128,47 @@ Template:
 > "Done, it's saved now. If we later notice the entry doesn't quite fit, we can easily roll it back.
 >
 > Back to [concrete ongoing work] — say when you're ready to continue."
+
+## Consolidation — keep the skill from bloating
+
+Adding entries forever produces a graveyard of similar-but-not-identical notes. Two consolidation triggers, both gated by explicit user yes — **never auto-merge**.
+
+### Trigger A — at new-discovery time (per-cluster, conversation-driven)
+
+Before recording a new discovery, the agent greps CHANGELOG for entries that hit ≥2 of the same keywords from the new finding. If 2+ existing entries match:
+
+> "We've found something new. Looks like there are already 2–3 similar entries in the changelog about [theme]. Want me to consolidate all of them into a single principle in `references/<file>.md` instead of adding another?"
+
+- **Yes** → write the consolidated principle to the target references file, mark the original CHANGELOG entries with a `→ consolidated in references/<file>.md § <section> (YYYY-MM-DD)` suffix, add ONE new CHANGELOG entry recording the consolidation itself.
+- **No** → add the new entry as usual.
+
+### Trigger B — at session start (periodic, hook-flagged)
+
+The session-sync hook keeps a count of `### 💡` entries in `CHANGELOG.md`. When the count crosses the next multiple of 10 (10, 20, 30, …) since the last flagging, the hook prints ONE line:
+
+> "🔍 N total learnings — periodic consolidation review recommended  
+>   (ask the agent: 'kör consolidation review' when you have a moment)"
+
+**The hook does nothing else.** No analysis, no grouping, no auto-suggestions, no opening of files. The actual review runs in conversation:
+
+1. User: "kör consolidation review" (or any natural prompt)
+2. Agent: scans CHANGELOG, groups `💡` entries by the `File:` line they cite, lists files with ≥3 entries as candidate clusters
+3. Per cluster: shows the entries, proposes a consolidated principle, asks the user
+4. User per cluster: yes → write consolidated + mark originals; no → skip; defer → leave for next time
+
+### What "consolidated" means in practice
+
+- Original CHANGELOG entries are **NOT deleted** (preserves granular history).
+- They get a one-line suffix: `→ consolidated in references/mac-gotchas.md § <section> (YYYY-MM-DD)`.
+- A new principle appears in the target `references/*.md` file, written project-agnostic per the Generalization rule.
+- A new `💡` entry records the consolidation itself (so the biography shows the merge as a learning).
+
+### Never (consolidation edition)
+
+- Auto-consolidate without explicit user yes (same gate as discovery commit).
+- Delete original CHANGELOG entries — only annotate.
+- Consolidate across unrelated themes just to clear the queue — if it doesn't read as ONE principle, leave them separate.
+- Use the hook to *do* anything beyond count + flag. Anything smarter breaks the simplicity contract.
 
 ## Format for entry
 
@@ -182,6 +244,13 @@ For future team-share: discoveries from read-only colleagues (without push acces
 
 ## Changelog (of the protocol itself)
 
+- v0.2 (2026-05-31): added § Pre-ask filters (three concrete YES/NO gates:
+  observed-failure-and-fix, one-sentence-rule, user-novelty-signal) between
+  § Generalization and § In-flow ask. Added § Consolidation (two triggers —
+  per-discovery cluster detection at write time + periodic 10-entry
+  count-and-flag at session start) between § In-flow ask and § Format-for-entry.
+  Hook gains a ~12-line count-and-flag block; actual consolidation runs in
+  conversation. Self-poisoning risk (adding forever, never merging) closed.
 - v0.1 (2026-05-30): initial TD adaptation from LS skill-growth-protocol v0.6.
   Stripped Valtech/Snap-specific examples; replaced with TD examples (16-sampler
   cap, Gaussian splat). Removed concierge/onboarding-protocol references (LS-only).

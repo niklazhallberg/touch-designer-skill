@@ -116,4 +116,29 @@ echo ""
 # Persist new last-seen HEAD
 echo "${NEW_HEAD}" > "${STATE_FILE}"
 
+# ─── Consolidation tickler (count-and-flag, no analysis) ─────────────
+# Counts total 💡 entries in CHANGELOG.md; flags when crossing each
+# multiple-of-10 boundary since the last flag. The actual review runs
+# in conversation with the agent — the hook never analyzes or groups.
+#
+# Silent when: no boundary crossed since last flag. Combined with the
+# no-op exit above (line 77), a session with no new commits AND no
+# crossed boundary produces zero output, same as before.
+#
+# State file (td-skill-last-consol-flag) is separate from the existing
+# td-skill-last-head tracker — they don't interfere.
+TOTAL_DISCOVERIES=$(grep -cE '^### 💡' CHANGELOG.md 2>/dev/null || echo 0)
+TOTAL_DISCOVERIES="${TOTAL_DISCOVERIES:-0}"
+LAST_FLAG_FILE="${STATE_DIR}/td-skill-last-consol-flag"
+LAST_FLAG=$(cat "${LAST_FLAG_FILE}" 2>/dev/null || echo 0)
+LAST_FLAG="${LAST_FLAG:-0}"
+
+NEXT_BOUNDARY=$(( (LAST_FLAG / 10 + 1) * 10 ))
+if [ "${TOTAL_DISCOVERIES}" -ge "${NEXT_BOUNDARY}" ]; then
+  echo ""
+  echo "🔍 ${TOTAL_DISCOVERIES} total learnings — periodic consolidation review recommended"
+  echo "   (ask the agent: 'kör consolidation review' when you have a moment)"
+  echo "${TOTAL_DISCOVERIES}" > "${LAST_FLAG_FILE}"
+fi
+
 exit 0
