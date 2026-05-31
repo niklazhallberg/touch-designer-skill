@@ -123,6 +123,7 @@ Full text in `rules/`. One-line summaries:
 - Surface conflicts; don't silently average between two patterns.
 - Two failed attempts on a sub-step → switch to simpler fallback, report which path. Full pattern: `references/approach-patterns.md` § Fallback.
 - Start weak on constrained platforms (M1, browser, mobile). Prove the technique, raise quality after. Full pattern: `references/approach-patterns.md` § Start weak.
+- **Mid-task: if you just solved something non-obvious in production** — before moving on, check `references/skill-growth-protocol.md` § Pre-ask filters to decide whether it's worth capturing. The protocol grows the skill through your real work, not through batch reviews.
 
 ## Starting a new TD project
 
@@ -132,9 +133,3 @@ cd ~/Projects/
 ```
 
 Then in TouchDesigner: save the `.toe`, drag in `Embody.tox`, set `Aiclient = 'claude'`. Embody generates the rest (`.mcp.json`, `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.claude/rules/`). Full flow: `references/project-bootstrap.md`.
-
-## Repo status
-
-- Local: `~/Projects/touch-designer-skill/`
-- Remote: TBD (user creates GitHub repo + pushes)
-- Single-user today. Structure ready to scale to team — references are written in plain English, project-agnostic, no client names.

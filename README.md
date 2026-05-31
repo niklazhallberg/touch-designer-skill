@@ -13,6 +13,12 @@ A Claude Code skill for building TouchDesigner projects with Embody + Envoy MCP.
 - `templates/td-project/` — what `td-new` copies into a fresh project folder.
 - `CHANGELOG.md` — biography of what the skill has learned over time.
 
+## Repo status
+
+- **Local:** `~/Projects/touch-designer-skill/` (symlinked from `~/.claude/skills/touch-designer-skill/`)
+- **Remote:** [github.com/niklazhallberg/touch-designer-skill](https://github.com/niklazhallberg/touch-designer-skill)
+- **Scope:** Single-user today (Niklaz). Structure team-ready — references written in plain English, project-agnostic, no client names. See `references/project-bootstrap.md` § When team-share lands for the rollout plan.
+
 ## Install on a new machine
 
 ```bash
