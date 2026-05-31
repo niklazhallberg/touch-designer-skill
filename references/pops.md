@@ -401,6 +401,102 @@ Instead of "configure a solver and trust the black box", you **compose solver lo
 
 ---
 
+## Production patterns from practitioners
+
+**MEDIUM confidence** — these are recurring patterns from named practitioners (primarily Gianmaria Vernetti's II HQ articles, May 2026), not Derivative docs. The operators are docs-verified individually; the *combinations* into a workflow are practitioner-derived recipes.
+
+### Relational point networks — dynamic textures from spatial relationships
+
+**Source:** [Gianmaria Vernetti — Creative Uses of POPs in TouchDesigner](https://interactiveimmersive.io/blog/touchdesigner-tutorials/creative-uses-of-pops-in-touchdesigner/) (II HQ, 2026-05-14)
+
+For evolving point textures and relational visual structures, four operators carry most of the load:
+
+- **Connectivity POP** — group points by topological connectivity
+- **Neighbor POP** — for each point, find K nearest points; produces the array attribute `Nebr` (indices of neighbors)
+- **Ray POP** — cast rays from points against triangles/quads (provided as input 2); useful for projection / surface-attachment / line-of-sight queries
+- **Proximity POP** — connect points within a near/far distance threshold
+
+**Canonical combination:**
+
+```
+[Point Generator] → [Attribute POP: custom attrs] → [Random / Noise: variation]
+                            │
+                            ↓
+                  [Proximity / Neighbor: relationships]
+                            │
+                            ↓
+                  [Math Combine: blend attribute streams]
+                            │
+                            ↓
+                  [Cache POP: freeze expensive upstream]
+                            │
+                            ↓
+                  [Geometry COMP → Render TOP]
+```
+
+For surface-projection patterns specifically: use **`Ray POP`** with a target SOP (converted via `SOP to POP`) as input 2 — points project onto the target surface along their ray direction.
+
+### Audio-reactive POP chain — band magnitudes drive POP parameters
+
+**Source:** Gianmaria Vernetti II HQ tutorials | **Cross-link:** `audio-reactive.md`
+
+Canonical wiring for audio-reactive point/particle visuals:
+
+```
+[Audio Device In CHOP, frames mode] → [Audio Spectrum CHOP]
+                                              │
+                                              ↓
+                                  [Math: low/mid/high band averages]
+                                              │
+                                              ↓
+                                  [Lag CHOP: asymmetric, 5-30 ms attack / 150-500 ms release]
+                                              │
+                                              ↓
+                                  [Resample CHOP: audio rate → cook rate]
+                                              │
+                                              ↓
+                                  [CHOP to POP]  OR  [bind via Map page directly]
+                                              │
+                                              ↓
+                                  [POP chain — band drives parameter per-point via Map page]
+                                              │
+                                              ↓
+                                  [Geometry COMP → Render TOP]
+                                              │
+                                              ↓
+                                  [Blur TOP → bloom-equivalent → composite]
+```
+
+Three load-bearing decisions in this chain:
+
+1. **Map page binds band → POP parameter** (§ "Map-pages") so the agent doesn't need a custom GLSL POP for per-point audio response.
+2. **Asymmetric smoothing in `Lag CHOP`** (attack < release) prevents jitter while preserving beat impact — the "liquid" feel cross-referenced in `audio-reactive.md`.
+3. **Post-processing (`Blur TOP` → bloom → composite) is where atmosphere lives** — POPs deliver structure, TOPs deliver finish. Don't try to make POPs alone produce "ethereal/cinematic" — they're geometry; the look comes from compositing on top.
+
+Full audio-reactive details: `audio-reactive.md`.
+
+### Data visualization from external sources
+
+**Source:** Gianmaria Vernetti II HQ tutorials
+
+For loading external 3D / point data into POPs:
+
+| Data source | Path |
+|---|---|
+| `.ply` point cloud (Gaussian splat, scanned cloud) | **`Point File In POP`** direct → POP chain |
+| 3D mesh (`.fbx`, `.obj`) | `File In SOP` → `SOP to POP` → POP chain |
+| Tabular CSV (numerical columns) | `Table DAT` → `DAT to CHOP` → `Math` / `ReRange CHOP` (normalize) → `CHOP to POP` |
+| Real-time sensor (OAK / ZED depth camera) | `OAK Select POP` / `ZED POP` direct → POP chain |
+
+**For visualization output:** the loaded points feed either a particle system (`Particle POP` with light initial velocity for "drift" feel) or a connectivity network (`Proximity POP` + `Line POP`-generated connections) depending on data shape.
+
+**Rule of thumb:**
+- Tabular numerical data → CHOP-then-POP (normalize in CHOP-land first)
+- 3D point clouds with built-in attributes (`.ply` etc.) → `Point File In POP` direct
+- Mesh geometry → `SOP to POP` with `Dimension POP` if mesh dimension matters downstream
+
+---
+
 ## GLSL POP in practice — SSBOs, initialization, thread model
 
 **Source:** [Write a GLSL POP](https://docs.derivative.ca/Write_a_GLSL_POP), [GLSL POP docs](https://docs.derivative.ca/GLSL_POP), [GLSL Advanced POP](https://docs.derivative.ca/GLSL_Advanced_POP), [Topology POP](https://docs.derivative.ca/Topology_POP) | **Confidence:** HIGH

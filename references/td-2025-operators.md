@@ -49,6 +49,34 @@ What changed: the 2-blob limit for Non-Commercial licenses has been removed. All
 
 **Known gap:** realistic blob count on M1 Pro before frame budget collapses — not benchmarked publicly. Capture when you actually push it.
 
+### Canonical Blob Track wiring
+
+For tracking blobs from a luminance/threshold source into TD as usable u/v + instancing data:
+
+```
+[Video In / camera TOP]
+        │
+        ↓
+[Monochrome TOP] → grayscale
+        │
+        ↓
+[Threshold TOP] → binarize
+        │
+        ↓
+[Blob Track TOP] → tracks N blobs (now unbounded since 2025.32820)
+        │
+        ↓
+[Info DAT pointed at the Blob Track TOP] → exposes per-blob u/v + size + ID
+        │
+        ↓
+[Use Info DAT cells as expressions on:
+   - Geometry COMP instancing source (u/v drive instance position)
+   - shader uniforms (count drives effect intensity)
+   - any per-blob parameter binding]
+```
+
+**Rule:** the **Info DAT pointed at `Blob Track TOP`** is how you get per-blob structured data out of the image-processing chain into TD's parameter / instancing world. Don't try to read pixels from the Blob Track TOP directly — that's the wrong end.
+
 ---
 
 ## Other 2025-series additions — "confirmed exists, depth needed from production"
