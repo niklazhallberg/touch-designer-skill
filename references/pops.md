@@ -4,6 +4,30 @@
 
 ---
 
+## Contents
+
+This file is ~660 lines. Jump to the section you need:
+
+- [POPs are the correct default in TD 2025+](#pops-are-the-correct-default-in-td-2025) — the "why POPs"
+- [What POPs replace vs don't replace](#what-pops-replace-vs-dont-replace) — what NOT to retire
+- [Build delta — POP additions across the 2025 series](#build-delta--pop-additions-across-the-2025-series) — per-build POP additions
+- [Operator vocabulary](#operator-vocabulary) — Generators, Shaping, Line/curve, Dynamics, Copy/scatter, GLSL, Bridges, Experimental, Workhorses
+- [Conversion bridges + canonical wiring](#conversion-bridges--canonical-wiring) — SOP/CHOP/DAT/TOP ↔ POP
+- [The attribute system — mental model](#the-attribute-system--mental-model) — points / vertices / primitives, built-ins, custom
+- [Index pattern matching — POP grammar](#index-pattern-matching--pop-grammar) — `[3-15]`, `^[100-200]`, etc.
+- [Map-pages — per-point parametric without shaders](#map-pages--per-point-parametric-control-without-shaders) — before reaching for GLSL POP
+- [Rendering pipeline (deeper)](#rendering-pipeline-deeper-than-the-table-above) — Geometry COMP, render flags, scatter vs instancing
+- [Line and curve workflows](#line-and-curve-workflows--first-class-pop-territory) — Line / Curve / Trail POPs
+- [Particle systems — open feedback chain](#particle-systems--open-feedback-chain-not-a-closed-solver) — explicit architecture, not closed solver
+- [Production patterns from practitioners](#production-patterns-from-practitioners) — relational nets, audio-reactive POP chain, data-viz canonical paths
+- [GLSL POP in practice](#glsl-pop-in-practice--ssbos-initialization-thread-model) — SSBO model, Initialize Output Attributes
+- [Mac platform support](#mac-platform-support) — Apple Silicon vs Intel; no double-precision, no ray tracing
+- [TD 2025.32820 — Python access functions](#td-202532820--python-access-functions-with-delayedtrue) — `.point()`/`.prim()`/`.vert()` with `delayed=True`
+- [Debugging POPs](#debugging-pops) — Info CHOP, viewer overlays, POP to DAT, GLSL POP errors
+- [Known gaps (deliberately empty)](#known-gaps-deliberately-empty) — what's NOT in here yet
+
+---
+
 ## POPs are the correct default in TD 2025+
 
 **Source:** [2025 Official Update](https://derivative.ca/community-post/2025-official-update/73153), [2025.31550 Official release notes](https://derivative.ca/release/202531550) | **Date:** October 30, 2025 (TD 2025 Official) | **Confidence:** HIGH

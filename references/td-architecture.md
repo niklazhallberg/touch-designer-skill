@@ -6,7 +6,7 @@ Two principles for how the agent should reason about TD network structure: prefe
 
 ## Minimalism — prefer fewer operators over more
 
-**Source:** [The Great Inversion (Dylan Roscover, March 2026)](https://derivative.ca/community-post/great-inversion/74207) | Date: March 2026
+**Source:** [The Great Inversion (Dylan Roscover, March 2026)](https://derivative.ca/community-post/great-inversion/74207) | Date: March 2026 | **Confidence:** HIGH (the 33:1 widget-vs-primitive ratio is from Derivative's own palette; the architectural argument is broadly applicable)
 
 Concrete reference point: Derivative's stock `buttonMomentary` widget COMP contains **33 operators internally** to provide a single push-button. A bare `Text COMP` set up to react on click does the same job with **1 operator**. The ratio is roughly **10:1** in this example, and it generalizes — heavy widget abstractions from the palette are often unnecessary for project-specific work.
 
@@ -36,7 +36,7 @@ Concrete reference point: Derivative's stock `buttonMomentary` widget COMP conta
 
 ## Visual verification — `capture_top` is ground truth
 
-**Source:** [The Great Inversion (Dylan Roscover, March 2026)](https://derivative.ca/community-post/great-inversion/74207) | Date: March 2026
+**Source:** [The Great Inversion (Dylan Roscover, March 2026)](https://derivative.ca/community-post/great-inversion/74207) | Date: March 2026 | **Confidence:** HIGH (cross-referenced as an architectural rule in CLAUDE.md and `rules/td-python.md`; this entry adds the "necessary not sufficient" framing on top)
 
 **"If it looks correct, it is correct."** TD is a visual program; the output of a TOP/render is the only ground truth. Code that runs without errors and parameters that read as expected do not, by themselves, prove the network produces the intended image/animation.
 
@@ -67,3 +67,18 @@ This reinforces and extends existing rules:
 `errors=0` + "parameter reads correct" is **necessary but not sufficient**. The image is the proof. If you didn't capture, you don't know.
 
 A small extension: when comparing before/after on a non-trivial change, capture *both* and surface the diff. Don't ask the user to remember what the previous frame looked like.
+
+---
+
+## Known gaps (deliberately empty)
+
+These are publicly unresolvable or unmeasured as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
+
+| Gap | Where it surfaces |
+|---|---|
+| Quantified cook-cost difference per operator count — the 33:1 ratio is structural, but no measured per-frame cost delta is documented | First time a project's cook budget is profiled with widget-heavy vs primitive-heavy UI side by side |
+| When the abstraction-cost calculation flips — which palette widgets ARE worth their internal operator count (gesture handling, accessibility, theming) | First time a primitive-built UI hits a feature that's non-trivial to reimplement |
+| `capture_top` performance budget for high-FPS work — at what cook rate does per-change capture become its own bottleneck? | First time visual verification is enforced on a 120 Hz / VR / installation project |
+| Whether visual verification should be automated (cron-snapshot during long runs) vs always on-demand | First time a stuck operator's wrong output goes unnoticed for hours |
+
+When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.

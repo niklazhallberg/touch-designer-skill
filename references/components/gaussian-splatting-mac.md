@@ -6,6 +6,8 @@ Three component families, distinct maturity and Mac support. Trigger this refere
 
 ## Pipeline split — splat CREATION vs splat RENDERING
 
+**Confidence:** HIGH (the creation-vs-rendering distinction is architecturally clear; tool categorization below is verified per tool)
+
 Gaussian splat work has **two distinct steps**; don't conflate them when picking tools.
 
 1. **Create** — produce a `.ply` (or newer `.spz`) splat file from input photos/video. This step lives OUTSIDE TouchDesigner.
@@ -43,7 +45,7 @@ The components listed below (Tim Gerritsen, atarilover123, TDGS, yeataro, POP-ba
 
 ## Tim Gerritsen's original `GaussianSplatting-1.0.tox`
 
-**Source:** [Derivative community asset](https://derivative.ca/community-post/asset/gaussian-splatting/69107) | Released March 2024
+**Source:** [Derivative community asset](https://derivative.ca/community-post/asset/gaussian-splatting/69107) | Released March 2024 | **Confidence:** HIGH (user verified Mac failure mode in production 2026-05-30; white-force workaround verified working)
 
 **Mac status:** Fails silently — the GLSL vertex shader uses 17 samplers, which hits the macOS/MoltenVK 16-sampler cap and produces red/blue color corruption (not a compile error). See `mac-gotchas.md` § "16-sampler GLSL cap".
 
@@ -61,7 +63,7 @@ The components listed below (Tim Gerritsen, atarilover123, TDGS, yeataro, POP-ba
 
 ## atarilover123/GaussianSplat_TD fork (*reportedly* Mac-compatible — to verify)
 
-**Source:** [github.com/atarilover123/GaussianSplat_TD](https://github.com/atarilover123/GaussianSplat_TD), [YouTube walkthrough](https://www.youtube.com/watch?v=Mr8H0irijhM), [Derivative forum](https://forum.derivative.ca/t/gaussian-splatting-2024-03-04/) | Updated November 2025 (per third-party sources)
+**Source:** [github.com/atarilover123/GaussianSplat_TD](https://github.com/atarilover123/GaussianSplat_TD), [YouTube walkthrough](https://www.youtube.com/watch?v=Mr8H0irijhM), [Derivative forum](https://forum.derivative.ca/t/gaussian-splatting-2024-03-04/) | Updated November 2025 (per third-party sources) | **Confidence:** LOW (existence not personally confirmed; user has not cloned the repo or rendered with it; reported via YouTube + forum reference only)
 
 **Reported** community fork of Tim Gerritsen's `.tox` with a 16-sampler-reduced GLSL shader, claimed Mac+PC universal. Reported additions as of November 2025: portrait-mode fix, camera automation, noise effects.
 
@@ -73,7 +75,7 @@ The components listed below (Tim Gerritsen, atarilover123, TDGS, yeataro, POP-ba
 
 ## Lake Heckaman TDGS 1.3.1 (native Mac)
 
-**Source:** [Radiance Fields write-up](https://radiancefields.com/tdgs-for-gaussian-splatting-in-touchdesigner) | Date: December 2025
+**Source:** [Radiance Fields write-up](https://radiancefields.com/tdgs-for-gaussian-splatting-in-touchdesigner) | Date: December 2025 | **Confidence:** MEDIUM (Radiance Fields source verified; user has not personally evaluated TDGS 1.3.1 — capabilities list is from publisher's changelog)
 
 Production-ready Mac-native Gaussian splat toolkit. Requires TD **2025.31760+**. Highlights from the published changelog:
 - Full macOS compatibility including Apple Silicon (sample `.toe` confirmed running on M1 MacBook Air)
@@ -88,7 +90,7 @@ Production-ready Mac-native Gaussian splat toolkit. Requires TD **2025.31760+**.
 
 ## yeataro/TD-Gaussian-Splatting (reference only)
 
-**Source:** [github.com/yeataro/TD-Gaussian-Splatting](https://github.com/yeataro/TD-Gaussian-Splatting) | Date: late 2023
+**Source:** [github.com/yeataro/TD-Gaussian-Splatting](https://github.com/yeataro/TD-Gaussian-Splatting) | Date: late 2023 | **Confidence:** LOW (documentation incomplete per source; performance claims not independently validated; use for reference only)
 
 Independent GitHub implementation. Documentation was incomplete as of late 2025; the repo claims faster performance than earlier approaches but this is not independently validated. **Use for reference only** — don't lead a Mac production with this until performance is benchmarked on the target hardware.
 
@@ -96,7 +98,7 @@ Independent GitHub implementation. Documentation was incomplete as of late 2025;
 
 ## Native POP-based Gaussian Splatting (TD 2025.30600+)
 
-**Source:** [Experimental 2025.30770 release notes](https://derivative.ca/release/experimental-202530770/72562), [alltd.org POP GS overview](https://alltd.org/gaussian-splats-in-touchdesigner-now-in-pops-new-features/) | Date: June–August 2025
+**Source:** [Experimental 2025.30770 release notes](https://derivative.ca/release/experimental-202530770/72562), [alltd.org POP GS overview](https://alltd.org/gaussian-splats-in-touchdesigner-now-in-pops-new-features/) | Date: June–August 2025 | **Confidence:** MEDIUM (Derivative ships the example .toe — existence is HIGH; user has not personally evaluated the pipeline yet)
 
 Derivative now ships a Gaussian splat example `.toe` in their POP examples package (bug fixed in 2025.30770). Capabilities include:
 - Relighting with native TD lights
@@ -122,3 +124,20 @@ When a user asks "what Gaussian splat component should I use on Mac?" — the an
 | Looking at yeataro | Reference only, don't lead with it |
 
 **Two failed renders on Mac with the original Tim component → stop, ask user which alternative to evaluate.** Don't substitute without consent.
+
+---
+
+## Known gaps (deliberately empty)
+
+These are publicly unresolvable or untested as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
+
+| Gap | Where it surfaces |
+|---|---|
+| TDGS 1.3.1 actual licensing cost + commercial-tier terms | First time the user evaluates TDGS for a paid project |
+| atarilover123 fork existence + behavior on user's TD 2025.32820 + M1 Pro | First time the user clones the fork and renders `RADON_Tree.ply` with it |
+| POP-based native pipeline performance on M1 Pro at production splat counts | First time the user evaluates Derivative's example `.toe` |
+| OpenSplat M1 compile success rate (libtorch + OpenCV + Xcode build process untested by user) | First time the user wants a local-Mac creation pipeline |
+| yeataro performance vs Tim / TDGS comparison on identical input `.ply` | If yeataro graduates from reference-only to candidate |
+| Which Mac-renderer handles >1M splats best — none benchmarked at scale | First time a project pushes splat density past comfortable |
+
+When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.

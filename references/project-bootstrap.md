@@ -22,11 +22,11 @@ How a new TouchDesigner project consumes this central skill, what Embody generat
 
 ## Embody — source and download
 
-**Source repo:** [github.com/dylanroscover/Embody](https://github.com/dylanroscover/Embody)
+**Source repo:** [github.com/dylanroscover/Embody](https://github.com/dylanroscover/Embody) | **Confidence:** HIGH (link verified working 2026-05-30)
 
 **Releases:** [github.com/dylanroscover/Embody/releases](https://github.com/dylanroscover/Embody/releases) — pull the latest `.tox` from here for every new project.
 
-**Latest release (as of 2026-05-30):** v5.0.428 (May 29 2026) — adds TDN exclude tags, improved dirty detection, Envoy resilience hardening.
+**Latest release — _versions-snapshot, re-verify if stale_:** v5.0.428 (May 29 2026) — adds TDN exclude tags, improved dirty detection, Envoy resilience hardening. | **Last verified:** 2026-05-30 | **Re-verify trigger:** if the snapshot date is >3 months old, OR if a colleague reports behavior the description doesn't match, check the Releases page for current state before relying on the listed capabilities.
 
 **Don't bundle Embody.tox in this skill repo.** It's a separate moving target; vendored copies become tech debt within months (same lesson as embedded MediaPipe plugin versions). Always fetch fresh from the Releases page.
 
@@ -35,6 +35,8 @@ How a new TouchDesigner project consumes this central skill, what Embody generat
 ---
 
 ## Verified working Embody configuration
+
+**Confidence:** HIGH (user-verified working configuration) | **Last verified:** 2026-05-30
 
 Captured from a running setup on 2026-05-30 (M1 Pro, macOS):
 
@@ -54,6 +56,8 @@ If `AI Project Root = Git root` is not exposed in your Embody version (it landed
 ---
 
 ## End-to-end flow for a new project
+
+**Confidence:** HIGH (the bash + TD steps below have been walked end-to-end successfully 2026-05-30)
 
 **One-time per machine** (~3 minutes manual):
 
@@ -91,6 +95,8 @@ Then in TouchDesigner:
 
 ## Conflict resolution when central ↔ project-local diverge
 
+**Confidence:** MEDIUM (the table below is the intended policy; not exercised yet in real production because central and project-local have not yet diverged in this skill's working window)
+
 This will happen eventually: Embody's auto-regen may produce a slightly different version of a skill or rule than the central canonical snapshot. The rule:
 
 | Conflict type | Winner |
@@ -105,6 +111,8 @@ This will happen eventually: Embody's auto-regen may produce a slightly differen
 
 ## When team-share lands (future)
 
+**Confidence:** LOW (aspirational structure; no team-share rollout has happened — the steps below are derived from how the Lens Studio skill scaled and should be treated as a starting plan, not a verified runbook)
+
 The structure above is single-user but team-ready. To scale to a team:
 
 1. Push the central repo to a shared private remote (Valtech org, GitHub team, etc.).
@@ -114,3 +122,20 @@ The structure above is single-user but team-ready. To scale to a team:
 5. Add a `CONTRIBUTING.md` describing the in-flow ask protocol from the discoverer's perspective.
 
 The references and growth-protocol are already written in plain English, project-agnostic — no rewrite needed. Only the installation surface needs the team-grade additions.
+
+---
+
+## Known gaps (deliberately empty)
+
+These are publicly unresolvable or untested as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
+
+| Gap | Where it surfaces |
+|---|---|
+| GitHub release pages — do they expose direct asset download URLs, or require an auth-walled flow? (TODO in § "Embody — source and download" above) | First time the user wants to automate Embody.tox fetching in `td-new` |
+| Behavioral delta between Embody v5.0.413 and v5.0.428 — not exercised in this skill's working window | First time a user is on v5.0.428 and behavior differs from this file's verified config |
+| Central ↔ project-local conflict resolution — table is the intended policy, untested in real divergence | First time Embody auto-regen produces a project-local skill that differs from the central canonical version |
+| Team-share rollout — single-user repo has never been cloned by a second person | First time the user invites a colleague onto the skill |
+| `bin/install.sh` from LS skill — referenced in team-share plan but not yet ported | First time team-share is actually attempted |
+| `.claude/settings.local.json` permissions breadth (Bash + WebFetch unscoped) — fine for single-user, but acceptable for team? | First time team-share rollout is planned in earnest |
+
+When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.

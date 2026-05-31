@@ -1,5 +1,7 @@
 # GLSL structural patterns in TouchDesigner — DELIBERATELY RESERVED
 
+**File type:** stub | **Confidence:** N/A (this file reserves a namespace; no knowledge is asserted yet — the empirical-capture mandate IS the content)
+
 **Status:** placeholder. This file is intentionally near-empty as of 2026-05-31.
 
 ## Why this file is a stub
@@ -42,3 +44,11 @@ Each pattern lands here only after observed in real TD work, not from web resear
 ## When this stub graduates
 
 When 3+ production patterns have been captured here through the growth protocol, this file stops being a stub and becomes a real reference. The growth protocol's Consolidation trigger (§ Trigger A) will likely fire around that point — review the captured patterns, see if they consolidate into a smaller set of principles, then promote.
+
+---
+
+## Known gaps
+
+For the gap-list specific to this file, see § "Don't" and § "How this gap closes" above — they enumerate the categories deliberately reserved for empirical capture (workgroup sizing on Apple GPUs, SSBO state on MoltenVK, glslTOP/MAT/multi structural criteria, multi-input ordering, Mac-specific shader gotchas beyond 16-sampler, debugging conventions). Listing them again as a Known-gaps table would duplicate without adding signal — the stub IS the gap-list.
+
+When a gap closes via production work and survives the growth-protocol gates, it lands as a new section above § "Existing GLSL knowledge in the skill" and the reserved category is struck from § "How this gap closes".

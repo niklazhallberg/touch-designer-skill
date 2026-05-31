@@ -6,7 +6,7 @@ TD-specific traps that aren't Mac-only. Each item: source + date + verification 
 
 ## LLM training data has wrong TD parameter names
 
-**Source:** TD/MCP research dossier (May 2026), cross-checked against live `get_op` calls | Date: May 2026
+**Source:** TD/MCP research dossier (May 2026), cross-checked against live `get_op` calls | Date: May 2026 | **Confidence:** HIGH (the 3 listed confusions are empirically verified; the broader pattern of LLM training-data drift is well-established)
 
 LLMs frequently produce TD parameter names from training-data priors that don't match the actual TD parameters. Known confusions:
 
@@ -28,7 +28,7 @@ LLMs frequently produce TD parameter names from training-data priors that don't 
 
 ## Non-commercial TD silently clamps resolution
 
-**Source:** TD/MCP research dossier (May 2026) | Date: May 2026
+**Source:** TD/MCP research dossier (May 2026) | Date: May 2026 | **Confidence:** HIGH (TD-documented licensing behavior)
 
 Non-Commercial TD licenses cap output resolution at **1280×1280**. Setting `resolutionw = 1920` silently produces 1280×1280 — no warning, no error, just clamped output.
 
@@ -51,7 +51,7 @@ Non-Commercial TD licenses cap output resolution at **1280×1280**. Setting `res
 
 ## "Invalid OP object" — don't destroy + recreate same-name in one Python call
 
-**Source:** TD/MCP research dossier (May 2026) | Date: May 2026
+**Source:** TD/MCP research dossier (May 2026) | Date: May 2026 | **Confidence:** MEDIUM (dossier-derived; user has not personally hit this — workaround set is the documented pattern but each variant untested in this skill's production work)
 
 Destroying an operator and immediately recreating one with the same name inside a single `execute_python` call (or scripted callback) often leaves dangling references that throw "Invalid OP object" errors downstream. TD's operator registry hasn't fully reconciled the destroy when the create runs.
 
@@ -71,7 +71,7 @@ Destroying an operator and immediately recreating one with the same name inside 
 
 ## MCP security model — localhost only, no auth, `execute_python` is unbounded
 
-**Source:** Envoy/Embody architecture (verified against bridge code) | Date: May 2026
+**Source:** Envoy/Embody architecture (verified against bridge code) | Date: May 2026 | **Confidence:** HIGH (verified against Envoy bridge source; security properties are explicit design choices)
 
 Security properties of the Envoy MCP setup as deployed:
 
@@ -96,8 +96,24 @@ Security properties of the Envoy MCP setup as deployed:
 
 ## Envoy tool count — citations drift
 
-**Source:** Envoy/Embody live count vs. third-party catalogs | Date: May 2026
+**Source:** Envoy/Embody live count vs. third-party catalogs | Date: May 2026 | **Confidence:** LOW (informational drift note, not load-bearing — exact count varies by Envoy build)
 
 The Envoy server exposes **~48 tools** as of Embody v5.0.413. Other sources drift: Glama lists ~45, some marketing copy says "~50". The drift is from minor additions/renames across versions.
 
 **Rule:** if asked "how many tools does Envoy have," answer "~48 as of v5.0.413, mind drift across versions." Don't assert a specific count without checking the current MCP `tools/list` response.
+
+---
+
+## Known gaps (deliberately empty)
+
+These are publicly unresolvable or untested as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
+
+| Gap | Where it surfaces |
+|---|---|
+| Complete list of LLM-hallucinated TD parameter names — only 3 confirmed (`dat`→`pixeldat`, `colora`→`alpha`, `sizex`→`size`) | Each time an unfamiliar parameter fails to set; collect new confusions here |
+| NC resolution clamp boundary behavior — does it clamp 1500×1500 → 1280×1280, or pass through up to 1280? Not tested at intermediate values | First time a project sets a width between 1280 and 1920 on NC |
+| "Invalid OP object" workaround variants — `delayFrames=1` vs split-into-two-calls vs rename-then-destroy: which is most reliable in which context? Untested in production by user | First time a script runs into the race condition |
+| MCP timeout behavior in newer Envoy builds (>v5.0.413) — does the 30-second cap still hold? | First time a long MCP operation is needed against a newer Embody |
+| Whether `addError` / `addScriptError` semantics changed in TD 2025+ | First time an extension method needs to raise a TD error from a non-cook context |
+
+When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.
