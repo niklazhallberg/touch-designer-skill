@@ -6,7 +6,18 @@
 - **Always use `.eval()`** to get a parameter's current runtime value. `.val` only returns the constant-mode value.
 - **Setting `.val` silently switches mode to CONSTANT** — destroys any active expression. Use assignment (`par.tx = 5`) only when you intend constant mode.
 - **Toggle parameters** use `0`/`1` (not `"True"`/`"False"`). With `set_parameter`, pass `value="0"` or `value="1"`.
-- **Pulse parameters fire via `par.pulse()`, NOT `set_parameter value=1`.** `set_parameter` (and `par.val = 1`) only sets the parameter's storage to a truthy value; it does **not** invoke the operator's `onPulse` callback. The receiving op sees no pulse event, no DAT-bound `onPulse` handler fires, no side effects. To actually trigger the action a Pulse parameter is meant to invoke, call `par.pulse()` via `execute_python`. Verified production trap 2026-06-01 (MediaPipe component's `Generateimagesegmentationgui` pulse appeared to fire when set via MCP `set_parameter`, but the helper-generation callback never ran).
+- **Pulse parameters watched by a `parameterexecuteDAT` need the handler called directly, not `set_parameter` and not `par.pulse()`.** Verified-empirically-broken ladder of attempts (production trap 2026-06-01 on MediaPipe v0.5.2 `Generateimagesegmentationgui`):
+  1. `set_parameter value=1` (MCP tool) → parameter accepts the value, returns True, **but the parexec DAT's `onPulse` callback does not fire**. No side effects, no helper generated.
+  2. `par.pulse()` via `execute_python` → docs say this is the canonical way to fire a pulse, but in the execute_python context **the parexec DAT callback still does not fire**. Sets storage but the watcher doesn't observe an event.
+  3. `mod(parexec_dat_path).onPulse(par)` via `execute_python` → calls the handler function directly. **This works.** The helper subnet generated, the side effect landed.
+
+  The execute_python context appears to suppress whatever event mechanism normally bridges `par.pulse()` to parexec callbacks. The workaround is to call the handler explicitly. To do this safely:
+  ```python
+  parexec_path = '/project1/.../parexec1'  # find via op flags or docked relationship
+  target_par = op('/project1/.../MyCOMP').par.Mypulsepar
+  mod(parexec_path).onPulse(target_par)
+  ```
+  Find the parexec DAT by inspecting the target operator's `docked` list or the `parexecuteDAT` siblings that name the target op in their `op` parameter.
 - **Explicit type conversion**: TD parameters remain TD objects internally. Convert with `int()`, `float()`, `str()` before passing to standard Python functions.
 
 ## Help Text
