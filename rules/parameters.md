@@ -6,6 +6,7 @@
 - **Always use `.eval()`** to get a parameter's current runtime value. `.val` only returns the constant-mode value.
 - **Setting `.val` silently switches mode to CONSTANT** — destroys any active expression. Use assignment (`par.tx = 5`) only when you intend constant mode.
 - **Toggle parameters** use `0`/`1` (not `"True"`/`"False"`). With `set_parameter`, pass `value="0"` or `value="1"`.
+- **Pulse parameters fire via `par.pulse()`, NOT `set_parameter value=1`.** `set_parameter` (and `par.val = 1`) only sets the parameter's storage to a truthy value; it does **not** invoke the operator's `onPulse` callback. The receiving op sees no pulse event, no DAT-bound `onPulse` handler fires, no side effects. To actually trigger the action a Pulse parameter is meant to invoke, call `par.pulse()` via `execute_python`. Verified production trap 2026-06-01 (MediaPipe component's `Generateimagesegmentationgui` pulse appeared to fire when set via MCP `set_parameter`, but the helper-generation callback never ran).
 - **Explicit type conversion**: TD parameters remain TD objects internally. Convert with `int()`, `float()`, `str()` before passing to standard Python functions.
 
 ## Help Text
