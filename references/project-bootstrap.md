@@ -26,11 +26,28 @@ How a new TouchDesigner project consumes this central skill, what Embody generat
 
 **Releases:** [github.com/dylanroscover/Embody/releases](https://github.com/dylanroscover/Embody/releases) — pull the latest `.tox` from here for every new project.
 
-**Latest release — _versions-snapshot, re-verify if stale_:** v5.0.428 (May 29 2026) — adds TDN exclude tags, improved dirty detection, Envoy resilience hardening. | **Last verified:** 2026-05-30 | **Re-verify trigger:** if the snapshot date is >3 months old, OR if a colleague reports behavior the description doesn't match, check the Releases page for current state before relying on the listed capabilities.
+**Latest releases — _versions-snapshot, re-verify if stale_:** v5.0.429 (May 31 2026) is current; v5.0.428 (May 29 2026) is the prior. Both work; v5.0.429 is what new projects pick up on automated fetch. | **Last verified:** 2026-06-01 | **Re-verify trigger:** if the snapshot date is >3 months old, OR if a colleague reports behavior the description doesn't match, check the Releases page for current state before relying on the listed capabilities.
 
 **Don't bundle Embody.tox in this skill repo.** It's a separate moving target; vendored copies become tech debt within months (same lesson as embedded MediaPipe plugin versions). Always fetch fresh from the Releases page.
 
-**TODO:** confirm whether the GitHub release pages expose direct asset download URLs or require an auth-walled flow. The release pages couldn't load asset blocks during automated fetch — manual download from the browser is the safe path until verified.
+### Direct asset URL pattern (verified 2026-06-01)
+
+**Closed:** previously a TODO ("can release pages be fetched directly without auth?"). Confirmed via probe today — the pages CAN, with these conventions:
+
+- **Asset filename includes the version**: `Embody-v5.0.429.tox`, NOT `Embody.tox`. The intuitive `Embody.tox` name returns 404 at every tag.
+- **Working pattern (HTTP 200, ~330 KB binary):**
+  ```
+  https://github.com/dylanroscover/Embody/releases/download/<tag>/Embody-<tag>.tox
+  ```
+  Example: `https://github.com/dylanroscover/Embody/releases/download/v5.0.429/Embody-v5.0.429.tox`
+- **NON-working patterns:**
+  - `…/releases/latest/download/Embody.tox` → 404 (asset doesn't exist under that name at the redirect target)
+  - `…/releases/download/<tag>/Embody.tox` → 404 (filename omits version)
+  - `gh release view` without auth → "gh auth login" required
+- **WebFetch on the releases page itself doesn't surface asset URLs** — they load via JS and static fetch sees a "Loading…" placeholder. Use the constructed direct URL pattern above instead of scraping.
+- **Discovery method (record for next time):** brute-force probe a short list of plausible filenames (`Embody.tox`, `Embody-<tag>.tox`, `Embody_<tag>.tox`) at the known tag's download path with `curl -sL -o /dev/null -w "%{http_code}"`. The 200 response wins.
+
+This pattern means **automated fetch into a new project folder is a one-line curl** — see § "What `td-new` and Embody can/can't automate" below for where automation hits its limit.
 
 ---
 
@@ -90,6 +107,62 @@ Then in TouchDesigner:
    - **Envoy Enable** = `On`
 4. **Save (⌘S).** Embody generates `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.claude/rules/`, and `.mcp.json` automatically.
 5. `cd <project> && claude` — the SessionStart hook syncs the central skill; the project's own Embody-generated CLAUDE.md becomes the front-door context.
+
+---
+
+## What `td-new` and Embody can/can't automate
+
+**Confidence:** HIGH (boundary discovered empirically 2026-06-01 by attempting to fully automate a new-project setup from a pre-existing claude-code session)
+
+The bootstrap flow has a **chicken-and-egg around MCP** that bounds what's automatable from a pre-existing claude session, regardless of how clever the tooling gets. Understanding the boundary lets the agent and user split work cleanly and stop arguing about it.
+
+### Automatable today (no manual user step)
+
+- **Folder + `.gitignore` + `.claude/settings.local.json` scaffold** — `td-new <name>` does this. Idempotent, ~1 sec.
+- **`git init -b main`** — `td-new` does this if not already a repo.
+- **Embody.tox fetch into the target folder** — given the verified URL pattern above (§ "Direct asset URL pattern"), this is a one-line curl into the scaffolded folder. The `td-new` script does NOT do this today; it could, behind an optional `--with-embody` flag, without changing the manual-flow contract for users who prefer to control the .tox version themselves.
+
+### NOT automatable from outside TD (requires user-in-TD)
+
+The following steps each need TD to do something that only happens via Embody's `onProjectStart` / dragdrop handler — but Embody isn't running yet because it hasn't been loaded yet. There's no MCP bridge to call until Embody starts Envoy, which starts after Embody is dropped in and the project is saved. **It IS bootstrapping.**
+
+- **File → Save As** to the target path — TD has no MCP bridge before Embody.
+- **Drag-drop Embody.tox into `/project1`** — same: no MCP. Even with the .tox already on disk (per the auto-fetch above), a human must drag it into the running TD window. There is no headless equivalent because `loadTox` requires a live MCP bridge.
+- **Set `Aiclient = claude` on the Embody COMP** — same: no MCP until Embody is loaded.
+- **Save (⌘S)** — same.
+
+### Automatable AFTER the user-in-TD steps (closes the loop)
+
+Once the user has saved with Embody loaded and `Aiclient = claude`, Embody starts Envoy on port 9870 and writes `.mcp.json`. From a fresh claude-code session in the project folder, the bridge is live and the agent can:
+
+- Verify all expected files exist (`get_td_info`, filesystem reads)
+- Inspect the project tree, set parameters, create operators
+- Run the project's own session-sync hook + skill triggers
+
+### Why the boundary won't move without TD changes
+
+The TD application's CLI (`TouchDesigner /path/to/project.toe`) can launch a project with a `.toe` already present, but can't be told "load this .tox and set this parameter on it" via shell args. Embody could in principle ship a CLI-driven bootstrap mode that loads itself + accepts `--aiclient=claude` at TD startup — but that's a feature request for Embody, not a thing the skill can route around. As of v5.0.429 (2026-05-31), no such mode exists.
+
+### Practical agent-side script (from a pre-existing claude session)
+
+```bash
+# 1. Scaffold (instant)
+~/.claude/skills/touch-designer-skill/scripts/td-new <project-name>
+
+# 2. Auto-fetch Embody.tox (instant, ~330 KB)
+curl -sL -o ~/Projects/touchdesigner-mcp-projects/<project-name>/Embody.tox \
+  "https://github.com/dylanroscover/Embody/releases/download/v5.0.429/Embody-v5.0.429.tox"
+
+# 3. Hand off to user with explicit click-list:
+#    a. In TD: File → Save As → ~/.../<project-name>/<project-name>.toe
+#    b. In Finder: drag the pre-fetched Embody.tox into /project1
+#    c. Embody COMP: AI Client = claude
+#    d. ⌘S
+#
+# 4. After user confirms ⌘S, the agent can verify via MCP (bridge now live).
+```
+
+The hand-off in step 3 takes the user ~30 seconds. Trying to automate it further with the current TD + Embody architecture wastes more time troubleshooting than the manual flow consumes.
 
 ---
 

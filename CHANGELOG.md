@@ -19,6 +19,14 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-01 — [project: Heatmap_Body_Tracker bootstrap]
+- **Embody.tox can be auto-fetched from GitHub releases; the rest of bootstrap can't be automated from a pre-existing claude session.** Two related findings landed today during a real new-project setup attempt.
+  - **Closed TODO — direct asset URL pattern works** (no auth needed): `https://github.com/dylanroscover/Embody/releases/download/<tag>/Embody-<tag>.tox`. Asset filename includes the version (e.g. `Embody-v5.0.429.tox`); the intuitive `Embody.tox` 404s at every tag. Discovery method = brute-force probe of plausible filename variants at the known tag's download path. WebFetch on the releases page itself returns a "Loading…" placeholder because assets render via JS. `gh release view` needs auth.
+  - **Automation boundary documented:** `td-new` + curl can scaffold folder, init git, and pre-fetch Embody.tox. Beyond that, the user must do 4 clicks in TD (Save As, drag-drop the .tox, set Aiclient=claude, ⌘S) because there's no MCP bridge until Embody is loaded — bootstrapping. Once those 4 clicks land, Embody starts Envoy and the agent can verify the rest via MCP.
+- **Value for user:** future new-project setups no longer guess at the .tox URL; `td-new` can optionally pre-fetch (~330 KB, instant); the manual click-list is documented so neither user nor agent wastes time pretending the boundary can be moved further with current TD + Embody architecture.
+- **File:** `references/project-bootstrap.md` § "Direct asset URL pattern (verified 2026-06-01)" + § "What `td-new` and Embody can/can't automate"
+- **Type:** [discovery] (URL pattern) + [convention] (automation boundary)
+
 ### 💡 2026-05-31 — [project: skill-meta]
 - **Consolidated learnings (2026-05-31 burst)** — 13 same-date discoveries from a research-and-write burst, summarized below as principles pointing at the references files where full content lives. Originals preserved verbatim in § "Archived detail (pre-consolidation 2026-05-31)" below. Listed in original burst order (newest first).
   - **AI / LLM integration architecture** — Python → OSC → TD bridge is the stable pattern; externalize the API caller to a separate Python process. Anthropic tool-use, vision, and Gemini text-gen all follow it. Tool names are snapshot-April-2026; the architecture is durable. → `references/ai-integration.md`
