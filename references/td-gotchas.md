@@ -104,6 +104,37 @@ The Envoy server exposes **~48 tools** as of Embody v5.0.413. Other sources drif
 
 ---
 
+## `.N.toe` numbered files are TD's normal backup-on-save behavior, not separate state
+
+**Source:** agent-friction observation 2026-06-01 during Heatmap_Body_Tracker Phase 0 bootstrap (agent in fresh project session gated execution on `project.name == 'X.1.toe'` vs `'X.toe'` thinking the canonical file was different — both files were identical 3418 bytes / same timestamp) | **Confidence:** HIGH (TD save behavior is well-documented and the friction case was concrete + cost real session time)
+
+When you Save As to `Heatmap_Body_Tracker.toe`, TD writes the canonical file AND immediately starts actively editing the next numbered increment — `Heatmap_Body_Tracker.1.toe`, then `.2.toe`, etc., bumping on every subsequent ⌘S. The canonical un-numbered `.toe` and the latest numbered `.N.toe` reflect the **same** project state (within one save cycle). They are not competing files; there is no "real one" vs "backup one" distinction at the build-content level.
+
+Symptom of agent confusion: `project.name` returns `Foo.1.toe` and the agent assumes "I should bail because the user wanted Foo.toe specifically." This is wrong. TD chose to edit `.1.toe`; the canonical `.toe` is updated alongside as a snapshot.
+
+**Rule for the agent:** `project.name` returning `<basename>.N.toe` (numeric suffix > 0) is **normal and expected**. Do not gate execution on it. Verify the project identity by:
+
+1. `project.folder` matches the intended project folder (this is the real identity check)
+2. `project.name` starts with the expected basename (strip the numeric suffix before comparing)
+
+Only bail if the project folder is wrong, or if the basename is wrong (e.g. `NewProject.1.toe` instead of `Foo.1.toe`).
+
+**Check first when:**
+
+- An agent in a fresh TD project session reports the file is "the wrong .toe" but the basename matches
+- A plan or build prompt includes a "verify the file is X.toe" step that doesn't account for the `.N.toe` increment
+- Multiple `.N.toe` files exist in the project folder with similar timestamps (they're the save-chain history; the highest N is the live edit target)
+
+**Don't:**
+
+- Treat `.N.toe` files as "backups to ignore" — the highest-numbered one IS the live edit target
+- Save As to overwrite the canonical `.toe` "to fix the discrepancy" — there is no discrepancy; the canonical and latest-numbered files match each save cycle
+- Plan a "verify file is X.toe (not X.1.toe)" step in any build prompt or onboarding plan; it generates exactly this false alarm
+
+For build-prompt authors specifically: don't write a Step 1 that gates on `project.name == 'X.toe'` literally. Write it as "`project.name` basename matches expected project name" (allowing the `.N.toe` increment).
+
+---
+
 ## Swapping a renderTOP's camera silently breaks bindings on the old camera
 
 **Source:** production session 2026-05-31 (M1 Pro, Gaussian splat scene with CameraExt-extended cameraViewport + bare-camera swap) | Date: 2026-05-31 | **Confidence:** HIGH (user-observed failure and fix in the same session — the bound feature visibly stopped working in the rendered view, mirror-binding on the new camera restored it)
