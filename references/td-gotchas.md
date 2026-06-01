@@ -133,6 +133,25 @@ Only bail if the project folder is wrong, or if the basename is wrong (e.g. `New
 
 For build-prompt authors specifically: don't write a Step 1 that gates on `project.name == 'X.toe'` literally. Write it as "`project.name` basename matches expected project name" (allowing the `.N.toe` increment).
 
+### Related: `project.save(path)` writes the file but does not update `project.name`
+
+Observed in the same 2026-06-01 bootstrap session, immediately downstream of the rule above. When the agent calls `project.save('/abs/path/to/Foo.toe')`, the file is written to disk at that path — but `project.name` continues to return whatever was active before the save call. This is consistent with how TD models project identity internally (the save call writes a snapshot; it does not "rename" the live project).
+
+**Implication for verification:** don't use `project.name` to check that a save landed where you intended. Use the filesystem:
+
+```python
+import os
+target = '/abs/path/to/Foo.toe'
+project.save(target)
+# Verify with filesystem, not project.name
+exists = os.path.exists(target)
+size = os.path.getsize(target) if exists else 0
+mtime = os.path.getmtime(target) if exists else 0
+# Sanity-check size > 0 and mtime is recent
+```
+
+`project.name` is informational about TD's active editing context, not about which path was last written. Agents post-save-verifying via `project.name` will see what looks like a mismatch when there is none.
+
 ---
 
 ## Swapping a renderTOP's camera silently breaks bindings on the old camera
