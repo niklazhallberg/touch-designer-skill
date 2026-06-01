@@ -1,0 +1,354 @@
+{
+  "name": "camera_control",
+  "type": "base",
+  "family": "COMP",
+  "parameters": {},
+  "custom_pages": {
+    "Source": [
+      {
+        "name": "Source",
+        "label": "Hand source",
+        "style": "StrMenu",
+        "default": "b",
+        "val": "b",
+        "min": 0.0,
+        "max": 1.0,
+        "normMin": 0.0,
+        "normMax": 1.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": [
+          "a",
+          "b"
+        ],
+        "menuLabels": [
+          "Hand A (pinch_a)",
+          "Hand B (pinch_b)"
+        ],
+        "help": "Which detected hand drives camera Y. 'b' matches the zoom convention (Hand B = second-detected hand, currently the right hand in this session). Note: hand A/B mapping is detection-order based and can flip if MediaPipe sees hands in different order across frames.",
+        "startSection": true,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      },
+      {
+        "name": "Handsource",
+        "label": "Hand source CHOP",
+        "style": "CHOP",
+        "default": "",
+        "val": "",
+        "min": 0.0,
+        "max": 1.0,
+        "normMin": 0.0,
+        "normMax": 1.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": null,
+        "menuLabels": null,
+        "help": "Path to the upstream hand-tracking CHOP that exposes per-frame channels (wrist_y, hand_*_present, pinch, etc.). Default: /project1/hand_control/pinch_lag \u2014 re-wire after import to point at your project's hand-source. Read by 'pick' and 'pick_pres' selectCHOPs internally via parent().par.Handsource.",
+        "startSection": true,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      }
+    ],
+    "Y": [
+      {
+        "name": "Yenable",
+        "label": "Enable Y drive",
+        "style": "Toggle",
+        "default": true,
+        "val": true,
+        "min": 0.0,
+        "max": 1.0,
+        "normMin": 0.0,
+        "normMax": 1.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": [
+          "off",
+          "on"
+        ],
+        "menuLabels": [
+          "Off",
+          "On"
+        ],
+        "help": "Master enable for hand-Y -> camera Y. Off = camera holds at center, hand position ignored.",
+        "startSection": true,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      },
+      {
+        "name": "Ycenter",
+        "label": "Y center (image)",
+        "style": "Float",
+        "default": 0.5,
+        "val": 0.5,
+        "min": 0.0,
+        "max": 1.0,
+        "normMin": 0.0,
+        "normMax": 1.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": null,
+        "menuLabels": null,
+        "help": "Image-space wrist Y value that maps to camera Y=0 (center of vertical range). 0.5 = middle of frame. Wrist Y is already inverted in hand_parser (1.0 - raw_y), so screen-up = +1.",
+        "startSection": false,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      },
+      {
+        "name": "Ygain",
+        "label": "Y gain",
+        "style": "Float",
+        "default": 2.0,
+        "val": 2.0,
+        "min": -10.0,
+        "max": 10.0,
+        "normMin": -5.0,
+        "normMax": 5.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": null,
+        "menuLabels": null,
+        "help": "Multiplier from normalized wrist Y (after Ycenter offset) to camera world Y units. Higher = more camera travel for the same hand motion. Negative also possible; Yinvert is the canonical sign-flip.",
+        "startSection": false,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      },
+      {
+        "name": "Yinvert",
+        "label": "Invert Y direction",
+        "style": "Toggle",
+        "default": false,
+        "val": false,
+        "min": 0.0,
+        "max": 1.0,
+        "normMin": 0.0,
+        "normMax": 1.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": [
+          "off",
+          "on"
+        ],
+        "menuLabels": [
+          "Off",
+          "On"
+        ],
+        "help": "Flip the sign of the Y signal. Use if camera goes the wrong way when hand moves up/down. Equivalent to setting Ygain negative, but keeps the gain value semantic.",
+        "startSection": false,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      },
+      {
+        "name": "Smoothlag",
+        "label": "Smoothing lag (sec)",
+        "style": "Float",
+        "default": 0.3,
+        "val": 0.3,
+        "min": 0.0,
+        "max": 2.0,
+        "normMin": 0.0,
+        "normMax": 1.0,
+        "clampMin": true,
+        "clampMax": false,
+        "menuNames": null,
+        "menuLabels": null,
+        "help": "Lag CHOP smoothing time. MediaPipe wrist Y has 0.14 jitter even on stationary hands; this filters it out. 0.3 is conservative; lower if camera feels laggy, higher if jitter is visible.",
+        "startSection": true,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      },
+      {
+        "name": "Yrest",
+        "label": "Y rest offset",
+        "style": "Float",
+        "default": 0.7,
+        "val": 0.0,
+        "min": -3.0,
+        "max": 3.0,
+        "normMin": -2.0,
+        "normMax": 2.0,
+        "clampMin": false,
+        "clampMax": false,
+        "menuNames": null,
+        "menuLabels": null,
+        "help": "Constant Y offset applied even when no hand is detected. Sets the camera's resting elevation. Negative = camera lower (ground visible), positive = camera higher.",
+        "startSection": false,
+        "expr": null,
+        "mode": "ParMode.CONSTANT"
+      }
+    ]
+  },
+  "children": {
+    "gate": {
+      "name": "gate",
+      "type": "math",
+      "family": "CHOP",
+      "nodeX": 500,
+      "nodeY": -90,
+      "params": {
+        "pageindex": {
+          "val": 0
+        },
+        "chopop": {
+          "val": "mul"
+        },
+        "autoexportroot": {
+          "expr": "parent()",
+          "mode": "expression"
+        }
+      },
+      "inputs": [
+        {
+          "index": 0,
+          "connected_to": "apply"
+        },
+        {
+          "index": 1,
+          "connected_to": "pick_pres"
+        }
+      ]
+    },
+    "pick": {
+      "name": "pick",
+      "type": "select",
+      "family": "CHOP",
+      "nodeX": 0,
+      "nodeY": 0,
+      "params": {
+        "pageindex": {
+          "val": 0
+        },
+        "chops": {
+          "expr": "parent().par.Handsource",
+          "mode": "expression"
+        },
+        "channames": {
+          "expr": "parent().par.Source.eval() + '_wrist_y'",
+          "mode": "expression"
+        },
+        "renameto": {
+          "val": "ty"
+        },
+        "autoexportroot": {
+          "expr": "parent()",
+          "mode": "expression"
+        }
+      },
+      "inputs": []
+    },
+    "apply": {
+      "name": "apply",
+      "type": "math",
+      "family": "CHOP",
+      "nodeX": 250,
+      "nodeY": 0,
+      "params": {
+        "pageindex": {
+          "val": 0
+        },
+        "preoff": {
+          "expr": "-parent().par.Ycenter",
+          "mode": "expression"
+        },
+        "gain": {
+          "expr": "parent().par.Ygain * (-1 if parent().par.Yinvert else 1) * (1 if parent().par.Yenable else 0)",
+          "mode": "expression"
+        },
+        "autoexportroot": {
+          "expr": "parent()",
+          "mode": "expression"
+        }
+      },
+      "inputs": [
+        {
+          "index": 0,
+          "connected_to": "pick"
+        }
+      ]
+    },
+    "smooth": {
+      "name": "smooth",
+      "type": "lag",
+      "family": "CHOP",
+      "nodeX": 750,
+      "nodeY": -90,
+      "params": {
+        "pageindex": {
+          "val": 0
+        },
+        "lag1": {
+          "expr": "parent().par.Smoothlag",
+          "mode": "expression"
+        },
+        "lag2": {
+          "expr": "parent().par.Smoothlag",
+          "mode": "expression"
+        },
+        "timeslice": {
+          "val": true
+        },
+        "autoexportroot": {
+          "expr": "parent()",
+          "mode": "expression"
+        }
+      },
+      "inputs": [
+        {
+          "index": 0,
+          "connected_to": "gate"
+        }
+      ]
+    },
+    "cam_y_out": {
+      "name": "cam_y_out",
+      "type": "null",
+      "family": "CHOP",
+      "nodeX": 1000,
+      "nodeY": -90,
+      "params": {
+        "pageindex": {
+          "val": 0
+        },
+        "autoexportroot": {
+          "expr": "parent()",
+          "mode": "expression"
+        }
+      },
+      "inputs": [
+        {
+          "index": 0,
+          "connected_to": "smooth"
+        }
+      ]
+    },
+    "pick_pres": {
+      "name": "pick_pres",
+      "type": "select",
+      "family": "CHOP",
+      "nodeX": 0,
+      "nodeY": -180,
+      "params": {
+        "pageindex": {
+          "val": 0
+        },
+        "chops": {
+          "expr": "parent().par.Handsource",
+          "mode": "expression"
+        },
+        "channames": {
+          "expr": "'hand_' + parent().par.Source.eval() + '_present'",
+          "mode": "expression"
+        },
+        "renameto": {
+          "val": "ty"
+        },
+        "autoexportroot": {
+          "expr": "parent()",
+          "mode": "expression"
+        }
+      },
+      "inputs": []
+    }
+  }
+}

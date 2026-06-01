@@ -24,4 +24,22 @@ If 1 + 2 are true but 3 is iffy ("might just be one-off"), let the pattern doc s
 
 | Component | Pattern doc | Source project | Captured |
 |---|---|---|---|
-| `hand-driven-camera-y.tdn` (capture deferred — TD was mid-load when first attempted; pattern doc complete and shippable independently) | `references/patterns/hand-driven-camera-controls.md` | RADON_TREE (formerly BANG_RFSU), 2026-05-31 | TBD — re-attempt when TD is idle |
+| `hand-driven-camera-y.tdn` | `references/patterns/hand-driven-camera-controls.md` | RADON_TREE (formerly BANG_RFSU), 2026-05-31 | 2026-06-01, refactored for portability (Handsource custom param + relative sibling refs) before commit |
+
+## Portability convention (verified on hand-driven-camera-y.tdn)
+
+Components in this directory MUST pass these checks before commit:
+
+1. **No absolute filesystem paths** anywhere in the JSON (no `/Users/`, no project-folder names like `/RADON_TREE/`, no asset filenames like `.ply` / `.toe`).
+2. **No absolute `/project1/...` paths** in operational fields. Help-text documentation may reference example paths for clarity — that's text, not binding.
+3. **External dependencies parameterized** via custom params on the COMP (e.g. `Handsource` CHOP-style param), with `val=''` and `default=''` so the importer is forced to wire after import.
+4. **Internal sibling references** stored as relative leaf names (`apply`, not `/project1/camera_control/apply`).
+5. **Custom params drive internal ops** via `parent().par.X` expressions — not hardcoded constants.
+
+Quick verification grep before committing any new component:
+
+```bash
+f=templates/components/<your-component>.tdn
+grep -nE "/project1/|/Users/|/RADON_|/BANG_|\.ply|\.toe" "$f" | grep -v '"help":'
+# Expected: no hits outside of help-text strings
+```

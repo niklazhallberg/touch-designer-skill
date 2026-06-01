@@ -2,7 +2,7 @@
 
 > **Trigger:** when building MediaPipe (or other hand-tracking source) → camera-parameter bindings on TouchDesigner. Covers: Y/pitch/roll mapping, pinch→zoom, presence-gated smoothing, the multi-camera split that lets bare-camera drive while extension-driven camera stays as fallback, and the silent-regression hazard around `renderTOP.par.camera` swaps.
 >
-> **File type — pattern.** Architectural mould for a recurring TD effect, not a one-off gotcha. Companion artifact (when MCP is idle): `templates/components/hand-driven-camera-y.tdn`. Cross-links: `td-gotchas.md § Swapping a renderTOP's camera silently breaks bindings on the old camera`; `components/mediapipe.md` for the upstream MediaPipe wiring.
+> **File type — pattern.** Architectural mould for a recurring TD effect, not a one-off gotcha. Companion artifact: `templates/components/hand-driven-camera-y.tdn` (drag-in COMP, portability-verified). Cross-links: `td-gotchas.md § Swapping a renderTOP's camera silently breaks bindings on the old camera`; `components/mediapipe.md` for the upstream MediaPipe wiring.
 
 ---
 
@@ -188,13 +188,17 @@ Today's radon-tree build uses Source-suffix routing (hand_a vs hand_b). The hand
 
 ## Companion artifact
 
-`templates/components/hand-driven-camera-y.tdn` — exported from radon-tree project 2026-06-XX (capture deferred until TD is idle from the splat-load cook). Re-import workflow:
+`templates/components/hand-driven-camera-y.tdn` — exported from radon-tree project 2026-06-01, refactored for portability before commit. Verified clean of absolute paths in operational fields; external dependencies parameterized via the `Handsource` custom param.
 
-1. `import_network` the .tdn into your project's `/project1/` (or wherever your `hand_control` lives).
-2. Re-wire the `pick` selectCHOP's `chop` parameter to point at YOUR project's hand-source.
-3. Update `Source` custom param to match your hand-index convention.
-4. Bind your camera's `ty` param via expression to the `cam_y_out` null.
-5. Tune `Ycenter / Ygain / Smoothlag` to your scene scale.
+**Re-import workflow:**
+
+1. `import_network` the .tdn into your target parent (e.g. `/project1/`). Creates `/project1/camera_control` (or whatever you rename it to).
+2. On the imported COMP's **Source** page, set `Handsource` to your project's hand-tracking CHOP path (typically a lagCHOP downstream of your MediaPipe/hand-parser output that exposes channels named like `<source>_wrist_y`, `hand_<source>_present`).
+3. On the **Source** page, set `Source` to match your hand-index convention (`a` for first-detected hand, `b` for second). Channel-name expressions inside `pick` and `pick_pres` build `${Source}_wrist_y` and `hand_${Source}_present` — your upstream CHOP must expose channels under that convention, or you must rename the expressions.
+4. Bind your camera's `ty` param via expression to `<imported_comp>/cam_y_out['ty']`.
+5. Dial in **Ycenter / Ygain / Smoothlag / Yrest** to your scene scale and rest-position calibration. Toggle **Yenable / Yinvert** to test directionality.
+
+**Internal sibling refs are stored as relative leaf names** — when imported, TD resolves them within the COMP, so the chain wires up correctly regardless of where the COMP lands in your project tree.
 
 ---
 
