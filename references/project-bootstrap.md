@@ -74,6 +74,29 @@ When the agent (or the user) writes a document that will be **read from inside a
 
 This pattern means **automated fetch into a new project folder is a one-line curl** — see § "What `td-new` and Embody can/can't automate" below for where automation hits its limit.
 
+### Vendor-cache convention for large third-party TD components
+
+**Confidence:** HIGH (real cost observed 2026-06-01: a fresh-project session downloaded mediapipe-touchdesigner v0.5.2 release.zip — 181 MB — to vendor/ even though the user already had the unzipped release sitting in a local Downloads-style folder. The session's local probe didn't cover that location, so it went straight to GitHub. Wholly preventable next time.)
+
+Large third-party TD components (mediapipe-touchdesigner is the canonical example at ~181 MB unzipped; YOLO and similar ML-bundled components run similar or larger) should be **probed in known local caches before falling back to GitHub download**. The bandwidth cost is real; the time cost compounds when multiple new projects use the same components.
+
+**Probe order for the agent when sourcing a vendored .tox / .zip:**
+
+1. **User's canonical vendor cache** — a single shared location the user keeps third-party TD downloads in. Common patterns: `~/Downloads/<component-name>/`, `~/Documents/TouchDesigner-vendor/`, `~/.touchdesigner-vendor/`. The user names this once; the agent stores it across sessions in skill memory (auto-memory `td_vendor_cache_path` or similar).
+2. **Previous project asset folders** — `~/Projects/touchdesigner-mcp-projects/*/Assets/` or `*/vendor/`. If a sibling project has the same component vendored, lift it.
+3. **TD palette browser** — `~/Documents/Derivative/Palette/` and similar OS-native palette locations.
+4. **Fall back to GitHub download** — last resort. Confirm with user before bandwidth-spending.
+
+**Naming convention for the cache:** include version in the filename — `mediapipe-touchdesigner-v0.5.2.zip`, NOT `mediapipe.zip`. This lets the agent detect outdated cached versions without unzipping and reading metadata.
+
+**Canonical vendor cache path on this machine:** _(to be filled when user confirms — see backlog item below)_
+
+**Why not auto-symlink between projects?** Two reasons. (1) Components evolve; v0.5.2 in one project may need to stay frozen while a new project uses v0.6.0. Symlinks create coupling that hurts. (2) Git-tracking a vendored .tox per-project is fine for projects that are git repos; symlinks complicate cross-platform sharing.
+
+**Backlog — td-new enhancement (not built today):**
+
+`scripts/td-new` could accept a `--with-mediapipe` (or `--with-component <name>`) flag that probes the cache locations above and either symlinks/copies the cached version into the new project, or reaches for download as last resort. Trigger for building: ≥2 instances of a new project re-downloading a component that was already cached locally. Today is instance 1 (Heatmap_Body_Tracker re-downloading what RADON_TREE-era setup already had); next occurrence promotes this from backlog to build.
+
 ---
 
 ## Verified working Embody configuration
