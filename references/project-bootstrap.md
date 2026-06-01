@@ -18,6 +18,31 @@ How a new TouchDesigner project consumes this central skill, what Embody generat
 
 **Path A (sidecar) is the chosen integration model.** Embody continues to auto-regenerate project-local `.claude/skills/` and `.claude/rules/`. The central repo holds canonical snapshots + everything Embody doesn't manage (`references/`, `CHANGELOG`, growth-protocol, sync hook, scaffolder). No symlinking; no disabling of Embody regen.
 
+### How to cite skill paths from project-facing documents
+
+**Confidence:** HIGH (real bug surfaced 2026-06-01 in a build prompt that cited `references/mac-gotchas.md` as if it were project-relative; the receiving Claude session correctly flagged the path as missing because it was looking in the project root, not the central skill).
+
+When the agent (or the user) writes a document that will be **read from inside a TD project's Claude session** — build prompts, hand-off notes, plans, READMEs, status files — citations of skill content must distinguish what lives centrally vs. what's mirrored project-locally. Unqualified `references/X.md` reads as project-relative from inside a TD project and **resolves to nothing**, because the project doesn't have a `references/` directory at all.
+
+**The rule (use these exact path forms in project-facing docs):**
+
+| Skill content | Lives at | Cite as (from project-facing docs) |
+|---|---|---|
+| `references/*.md` (gotchas, patterns, growth-protocol, components) | **Central only** | `~/.claude/skills/touch-designer-skill/references/<file>.md` |
+| `rules/*.md` (parameters, network-layout, mcp-safety, td-python) | Central **and** project-local (Embody mirror) | Prefer project-local: `.claude/rules/<file>.md`. Central path is `~/.claude/skills/touch-designer-skill/rules/<file>.md` — same content. |
+| `skills/*/SKILL.md` (workflow recipes) | Central **and** project-local (Embody mirror) | Prefer project-local: `.claude/skills/<name>/SKILL.md`. Central path is `~/.claude/skills/touch-designer-skill/skills/<name>/SKILL.md`. |
+| `CHANGELOG.md`, `templates/`, `scripts/` | **Central only** | `~/.claude/skills/touch-designer-skill/<file-or-dir>` |
+| `SKILL.md` (skill front door) | **Central only** | `~/.claude/skills/touch-designer-skill/SKILL.md` |
+
+**Within the skill itself** (i.e., when editing the skill's own SKILL.md, references files, or rules files): unqualified `references/X.md` is fine — it's skill-relative and the receiving context knows that.
+
+**Why this rule exists:** `references/` is **deliberately central-only** per the integration model above — duplicating it project-local would create drift the moment the central version is updated. The convention is invisible while you're inside the central skill, but ambiguous the moment a document crosses the central → project-local boundary. Always qualify when crossing the boundary.
+
+**Worked example (the 2026-06-01 bug):**
+
+- ❌ Build prompt wrote: `references/mac-gotchas.md` — receiving Claude looked in `<project-root>/references/`, found nothing, flagged it.
+- ✅ Should have written: `~/.claude/skills/touch-designer-skill/references/mac-gotchas.md` — receiving Claude reads from the central skill and finds the content.
+
 ---
 
 ## Embody — source and download
