@@ -48,15 +48,121 @@ The plugin runs detection tasks on a configurable set: face landmarks, face dete
 
 ---
 
+## Parameter names + defaults (v0.5.2, verified live)
+
+**Source:** live verification 2026-06-01 during Heatmap_Body_Tracker Phase 0 bootstrap (mediapipe-touchdesigner v0.5.2 on TD 2025.32820, M1 Pro) | Date: 2026-06-01 | **Confidence:** HIGH (all values read from live `get_op` output on the component, not from docs)
+
+Built-in detector toggles, all on the top-level Custom parameter page:
+
+| Parameter | Default | Notes |
+|---|---|---|
+| `Pnumposes` | 1 | Max simultaneous tracked poses. Multi-person use case: bump to your N (5 is common). |
+| `Detectposes` | True | Pose Landmarker enable. |
+| `Detectsegments` | **False** | Image Segmentation enable — **the only default-OFF detector**. Explicit opt-in required for the multi-person silhouette use case. |
+| `Detectfacelandmarks` | True | Face Landmarker. |
+| `Detectfaces` | True | Face Detector. |
+| `Detectgestures` | True | Hand Gesture detection. |
+| `Detectobjects` | True | Object Detector. |
+| `Detectimages` | True | Image Classifier. |
+| `Detectimageembeddings` | True | Image Embedder. |
+
+**Watch for:** the asymmetric default (one detector OFF, six ON) is a perf trap. A fresh project that wants only pose tracking inherits 7-detector overhead until those toggles get flipped off explicitly. Don't trust "default" — explicitly set every detector toggle to the project's actual needs.
+
+Segmentation model selection:
+
+| Parameter | Default | Alternatives |
+|---|---|---|
+| `Smodeltype` | `selfieMulticlass` | 6-class output (background, hair, body_skin, face_skin, clothes, accessories) — exposes per-class colors via `Scolor0r..Scolor6b`. Other values: `selfie`, `landscape`, person/background. Test alternatives in Phase 1 for instance-mask use cases. |
+
+---
+
+## Performance reality on M1 Pro at default settings
+
+**Source:** live measurement 2026-06-01 during Heatmap_Body_Tracker Phase 0, M1 Pro / TD 2025.32820 / FaceTime HD Camera 1280×720 | Date: 2026-06-01 | **Confidence:** HIGH (measured via the component's own `realtimeCalculatorCHOP` channels, hard numbers)
+
+With Pose Landmarker (`Posemodeltype = full`) + Image Segmentation (`Smodeltype = selfieMulticlass`) + `Pnumposes = 5` all enabled:
+
+| Channel | Value | Interpretation |
+|---|---|---|
+| `detectTime` | **75 ms** | Per-frame inference cost. |
+| `realTimeRatio` | **2.25** | Running 2.25× slower than realtime → ~13 FPS effective at 30 FPS source. |
+| `isRealtime` | **0** | Not keeping up. |
+| `totalInToOutDelay` | -7.5 | Suspect value (sign/unit unclear — open question, see Known gaps). |
+
+**Implications:**
+
+- Pre-build research estimates (e.g. 17–28 ms based on docs / community reports) were ~3× optimistic on this hardware. Real budget at these defaults is closer to 75 ms.
+- 30 FPS sustained is **not** achievable at defaults. Tuning is mandatory for live use.
+- Visual prototype work can proceed at sub-30 FPS — but plan for tuning before any production demo.
+
+**Tuning levers (in order of recover-most-time-first):**
+
+1. **`Posemodeltype = lite`** (instead of `full`) — drops the heaviest single model. Quality cost is real but acceptable for prototyping.
+2. **`Pnumposes = 1` or `2`** (instead of 5) — single-user or 2-person scenes don't need 5.
+3. **`Smodeltype` to `selfie` or person/background** (instead of `selfieMulticlass`) — fewer output classes = lighter inference.
+4. **Disable Segmentation entirely** if a Pose-skeleton-based silhouette suffices for the use case.
+5. **Drop input resolution** (640×360 → upsample mask downstream).
+
+Don't optimize blindly — measure after each lever via the same `realtimeCalculatorCHOP` channels.
+
+---
+
+## Subnet structure + canonical output paths (v0.5.2)
+
+**Source:** live `find_children` on the MediaPipe COMP 2026-06-01 during Heatmap_Body_Tracker Phase 0 | Date: 2026-06-01 | **Confidence:** HIGH (verified by direct subnet enumeration)
+
+The MediaPipe COMP exposes 71 children. Canonical Phase 1+ tap points:
+
+| Path (relative to MediaPipe COMP) | Type | What it carries |
+|---|---|---|
+| `Viewer` | nullTOP, 1280×720 | Composited overlay (webcam + landmarks + bbox + confidence labels). Cosmetic surface — see Known gaps re: stale labels. |
+| `pose_results` | textDAT | Raw landmark JSON, ~7 KB/frame at 1 person (x, y, z, visibility per landmark). |
+| `pose_tracking/out1` | CHOP | Multi-pose CHOP output — sample-per-person. |
+| `image_segmentation/segmentation_mask` | TOP | Multi-class segmentation output when `Smodeltype = selfieMulticlass`. |
+| `image_segmentation/selfie_mask` | TOP | Alternate, simpler mask. |
+| `realtimeCalculatorCHOP` | scriptCHOP | Perf-monitoring channels: `detectTime`, `drawTime`, `sourceFrameRate`, `realTimeRatio`, `totalInToOutDelay`, `isRealtime`. |
+
+**Rule for the agent:** when building downstream of MediaPipe, always tap one of these named outputs — don't poke into arbitrary internal subnet ops. The 5 paths above are the documented integration surface for v0.5.2; everything else inside is implementation detail subject to change between releases.
+
+---
+
+## MCP drop-in pattern: `loadTox()` is cleaner than `create_op + externaltox`
+
+**Source:** verified working 2026-06-01 during Heatmap_Body_Tracker Phase 0 drop-in | Date: 2026-06-01 | **Confidence:** HIGH (used in production successfully today)
+
+To programmatically drop a vendored .tox component into `/project1` (or any parent), use:
+
+```python
+new_comp = op('/project1').loadTox('/abs/path/to/Component.tox', password='', unwired=True)
+```
+
+- `loadTox` returns the new COMP reference, ready for further `set_parameter` / position calls.
+- `unwired=True` is the safe default for fresh drop-in — no auto-wiring to existing siblings.
+- `password=''` is required even for unencrypted tox files (component accepts empty string).
+- Use via `mcp__envoy__execute_python` since `loadTox` isn't exposed as a dedicated MCP tool.
+
+Compare with the alternative `create_op(baseCOMP) + set_parameter(externaltox = path)` pattern: that requires a follow-up `cook_op` / explicit reload step and risks the external reference becoming a dangling parameter. `loadTox` instantiates the .tox contents inline.
+
+**Check first when:**
+
+- Setting up a vendored 3rd-party component (MediaPipe, YOLO, custom .tox) in a new project
+- The .tox should be a self-contained internal COMP, not an externalized reference
+
+If the same `loadTox` pattern proves canonical for non-MediaPipe components in future projects, promote this rule out of `mediapipe.md` and into a general "vendored .tox drop-in" section of `references/td-gotchas.md` or similar.
+
+---
+
 ## Known gaps (deliberately empty)
 
-These are publicly unresolvable or unmeasured as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
+These are publicly unresolvable or unmeasured. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):
 
 | Gap | Where it surfaces |
 |---|---|
 | Exact frame-delay variance by detection task — "≥3 frames" is verified, but face vs hands vs pose individual delays not measured | First time per-task latency matters for a tight A/V sync use case |
 | CPU vs GPU cost split per detection task — disabling helps overall, but which task is the heaviest specifically? | First time profiling MediaPipe is needed for a perf-critical project |
-| Mac M1 Pro performance ceiling for combined hand+pose+face tracking simultaneously | First time the user enables 3+ detectors together |
+| `totalInToOutDelay` sign/unit — measured -7.5 at Pose+Seg defaults on M1 Pro; unclear whether this is frames, milliseconds, signed offset, or component bug | First time the agent needs to reason about MediaPipe latency from this CHOP specifically |
+| Viewer overlay vs detector-toggle state — disabled detectors (`Detectfaces=0`, etc.) still showed labels in the Viewer overlay during Phase 0. Unclear whether (a) the Viewer is purely cosmetic and unrelated to actual detector state, (b) toggles have latency to propagate, or (c) something else. The pose data DAT updated correctly, so the underlying pipeline followed the toggles; Viewer overlay is suspect | Phase 1 investigation, or any time the user inspects Viewer for verification |
+| Combined hand+face+pose tracking simultaneously on M1 Pro — Phase 0 measured Pose+Seg only (75 ms); the 3-detector combination is still unmeasured | First time the user enables 3 ML detectors together |
 | Whether the web-browser inference path can be replaced (Core ML / ONNX) to drop the ≥3 frame lag on Mac | First time the lag is unacceptable for a project |
 | `instance_data` channel naming conventions across plugin versions (drift unverified) | First time the plugin updates and downstream wiring breaks |
 
