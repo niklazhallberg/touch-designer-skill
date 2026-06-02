@@ -7,6 +7,20 @@ ready (no client names, no project-specific values, plain English).
 Adapted from the Lens Studio skill's growth-protocol v0.6 — same mechanic,
 TD-flavored examples and single-user tone.
 
+## HARD TRIGGER — when to force a growth check (do not skip)
+
+The protocol below is reflexive, not optional. Run the trigger check **before continuing the next action**, not at end of task. "Batched" capture is a known failure mode — the user has had to remind in the past. Do NOT wait for the user to ask.
+
+A trigger fires when ANY of these is true after solving something:
+
+- Took **3+ probe → fix cycles** to reach the working state (signals empirical territory, not docs-knowledge)
+- Reality **contradicted your initial model** (you said "X should work", X didn't, you found out why)
+- You used a **non-obvious workaround** (something a fresh agent reading the docs wouldn't guess)
+- You ran `restart_td` or any other "reset" because state didn't clear cleanly
+- User expressed surprise, asked "why did that happen?", or "how do we avoid this next time?"
+
+When triggered, immediately run the steps below ("When you solve something via probe") BEFORE the next user-facing message. Multiple triggers can batch into one ask if they happened in the same flow, but don't let them accumulate across turns.
+
 ## When you solve something via probe
 
 Before you move on:

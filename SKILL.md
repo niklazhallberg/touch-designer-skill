@@ -18,6 +18,19 @@ Build TD projects from Claude Code using Embody-externalized files + Envoy MCP f
 
 Then scan `references/` filenames so you know what banks exist before they're needed.
 
+## HARD TRIGGERS — run growth-protocol BEFORE next reply, not at end of task
+
+Reflexive, not memory-dependent. Capture in flow. If ANY of these is true after a fix, IMMEDIATELY run the gates in `references/skill-growth-protocol.md` and propose a save — do NOT wait for the user to ask. Batched capture is a known failure mode (the user has had to remind in the past).
+
+- **3+ probe→fix cycles** on the same sub-task (signals empirical territory, not docs-knowledge)
+- **Reality contradicted your model** (you predicted X, observed Y, root-caused why)
+- **Non-obvious workaround** used (a fresh agent with docs wouldn't guess it)
+- **`restart_td`** or any reset-tool needed because state didn't clean up
+- **User expressed surprise** ("åh!", "oj", "varför?") or asked "how do we avoid this next time?"
+- **You changed your mental model mid-flow** ("actually, X doesn't work like Z, it works like Y")
+
+Multiple triggers from the same flow batch into one ask. Across turns, never — surface immediately.
+
 ## How this skill is split
 
 | Lives here (central repo, user-level) | Lives per project (Embody auto-generates) |

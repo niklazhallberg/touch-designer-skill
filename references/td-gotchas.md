@@ -210,3 +210,54 @@ These are publicly unresolvable or untested as of 2026-05-31. Capture during rea
 | Whether `addError` / `addScriptError` semantics changed in TD 2025+ | First time an extension method needs to raise a TD error from a non-cook context |
 
 When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.
+
+---
+
+## Mesh-import gotchas captured from real work
+
+### `fileinSOP` does NOT read `.glb` (glTF binary) — convert to `.obj` externally
+
+**Source:** Squirrel build (.glb mesh), 2026-06-02 | **Confidence:** HIGH (verified, then fbxCOMP attempted as alternative — also unreliable, see next entry)
+
+`fileinSOP` supports `.obj`, `.bgeo`, `.geo` — **not** `.glb` or `.gltf`. Pointing the `file` param at a `.glb` produces `"Error: Unable to read file"` (even when the file exists and is readable on disk).
+
+**Fix (clean, reliable):** convert offline with a stdlib Python script that reads glTF binary structure (12-byte header + JSON chunk + BIN chunk), extracts `POSITION` floats and triangle `indices`, writes `v x y z` + `f i j k` lines to `.obj`. ~30 lines of code, no external libs. Drops textures, normals, UVs (acceptable if downstream pipeline doesn't need them; the squirrel/roots pipeline scatters POPs by surface area so vertex colors aren't relevant).
+
+Same script pattern works for any procedural-to-TD mesh path where you don't want a Blender/external-tool dependency. Keep generators in `Assets/generate_<thing>.py` so regen is `python3 Assets/generate_<thing>.py` + `op('.../filein').par.refresh.pulse()` in TD.
+
+### `fbxCOMP` imports `.glb` but `importselectPOP` data is unreliable
+
+**Source:** same Squirrel build, 2026-06-02 | **Confidence:** MEDIUM (one observation; pattern may vary per asset)
+
+`fbxCOMP` accepts `.glb` files (modern TD's FBX importer handles Khronos glTF) and the import reports zero errors. However, the resulting POP at `.../<fbxCOMP>/group1/mesh` (`importselectPOP` type) returned data that did NOT match the source `.glb`:
+
+- Source `.glb`: 148 185 vertices, mesh bbox X:0.37 × Y:1.82 × Z:1.90 (roughly cubic)
+- `importselectPOP` output: 4 438 points, bbox X:4.43 × Y:0.59 × Z:0.058 (**flat**, drastically different shape)
+
+The flat Z dimension and 33× point-count discrepancy suggest the POP was sampling some derived/UV representation rather than 3D positions, OR the import pipeline has an `pops=True` toggle bug. The `mergedGeos/primitive1` path showed only the default 6-vertex placeholder.
+
+**Conclusion: don't trust fbxCOMP's POP output for mesh data extraction.** Use external `.obj` conversion or other documented paths instead. If the goal is rendering (not POP-data-access), the fbxCOMP's geometry+material may still render correctly — that path wasn't tested in this case.
+
+---
+
+## Rendering gotchas
+
+### Depth Peel needed for nested/overlapping transparent surfaces
+
+**Source:** [docs.derivative.ca/Render_TOP](https://docs.derivative.ca/Render_TOP) — Derivative wiki, primary | **Confidence:** HIGH
+
+Default Render TOP sorts opaque geometry by depth correctly but can produce visual artifacts when multiple **transparent** surfaces overlap (e.g. a glass cube with water/objects inside, multiple glass layers, transparent particles in front of transparent geometry). The artifacts: surfaces draw in wrong order, the backmost-transparent shows in front, or transparency math compounds incorrectly.
+
+**Fix:** the Render TOP exposes three related parameters:
+
+- **`Transparency`** (menu) — three modes; the relevant one is **"Order Independent Transparency"** which uses depth peeling as part of its process.
+- **`Depth Peel`** — enables depth peeling separately from blending. Per the Derivative docs: *"Depth peeling is a technique used as part of Order-Independent Transparency, but this parameter allows you to use it in a different way."*
+- **`Transparency/Peel Layers`** (`transpeellayers`) — the number of rendering passes. Each layer captures one further-back transparent surface.
+
+**How depth peel works (Derivative quote):** *"first rendering geometry normally and saving that image and depth. Then another render is done but the closest pixels that were occluded by the previous pass are written to the color buffer instead."*
+
+**When to enable:** any scene with ≥2 transparent surfaces that can be in front of each other from the camera's view. Concrete cases: glass-cube-with-internal-water, layered glass panels, transparent particle volumes in front of transparent geometry, dual-sided glass (front + back face both transparent).
+
+**When NOT to enable:** scenes with only one transparent layer (single glass pane, particles against opaque background). Depth peel adds render passes — leaving it off when not needed saves frame budget.
+
+**Layer count rule of thumb:** start at 2–4 layers; increase only if you still see the artifact. Each layer costs roughly one extra render pass.

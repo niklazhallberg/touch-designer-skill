@@ -82,3 +82,36 @@ These are publicly unresolvable or unmeasured as of 2026-05-31. Capture during r
 | Whether visual verification should be automated (cron-snapshot during long runs) vs always on-demand | First time a stuck operator's wrong output goes unnoticed for hours |
 
 When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.
+
+---
+
+## Performance optimization — diagnostic-driven, not a fixed order
+
+**Sources (all primary Derivative):**
+- [docs.derivative.ca/Optimize](https://docs.derivative.ca/Optimize) — official UserGuide page
+- [learn.derivative.ca — Optimization curriculum lesson](https://learn.derivative.ca/courses/100-fundamentals/lessons/108-resources/topic/optimization/)
+- [derivative.ca community-post: TouchDesigner Optimization Strategies](https://derivative.ca/community-post/touchdesigner-optimization-strategies/70986)
+
+**Confidence:** HIGH — three independent Derivative-published sources converge on the same principles.
+
+**Important framing correction:** Online research syntheses (e.g. AI search-engine summaries) sometimes present a *fixed optimizing order* like "resolution → transparency → particles → cook → CPU/Python". **Derivative does not document a fixed order.** Their guidance is **diagnostic-driven** — measure first, then act on where the bottleneck actually is. Following a generic order without measurement wastes effort optimizing things that aren't the bottleneck.
+
+### The actual documented diagnostic workflow
+
+1. **Performance Monitor first.** Open it (`Dialogs → Performance Monitor` or `Alt+Y`) to see CPU time per operator per frame. Look at the top of the list — those are your real bottlenecks. *"The Performance Monitor gives you the CPU time consumed by each operator that cooks in one single frame."*
+
+2. **Trail CHOP on Perform CHOP** for time-history. *"You can perform CHOP followed by a Trail CHOP and turn on Frame Time and Cook channels to look at a time-history of performance."* Useful for catching intermittent stalls vs steady cost.
+
+3. **GPU-bottleneck test (64×64):** drop render resolution to 64×64. If framerate jumps significantly → GPU-bound (work on render-side: fewer transparent passes, lower resolutions, fewer particles, simpler shaders). If little change → CPU-bound (work on cook-side: Python, CHOPs, cook chain breadth). *"Try turning down your render resolution 64x64 and see if things speed up. If they do then you know it's GPU related."*
+
+4. **Python audit.** *"Python scripts can be very expensive. If they are showing up as taking significant time in the Performance Monitor, it may be worth seeing if they can be optimized at all. In many cases, chunks of python code can be replaced with a small network of TouchDesigner CHOPs or DATs, which may be an order of magnitude faster. If you can, avoid scripts running every frame."*
+
+5. **Null CHOP Selective mode** to gate downstream cooking. *"The Null CHOP in Selective mode can be used to reduce downstream cooking in CHOP chains when the input to the Null CHOP doesn't change. However, the Null CHOP itself will always cook on data changes in this mode, so use with caution."*
+
+6. **System hygiene.** *"Turn off all virus checkers and spy-ware services while running TouchDesigner. These services can often use lots of CPU cycles and access the hard drive frequently."*
+
+### Why diagnostic-driven beats fixed-order
+
+Two different projects with the same framerate problem can have completely different bottlenecks: one might be Python-bound from a per-frame DAT script, the other GPU-bound from a misconfigured Render TOP with unnecessary transparency. The fixed-order rule would have you optimize resolution first in BOTH cases — wasted effort in the Python-bound project. Performance Monitor + the 64×64 GPU test resolve it in seconds.
+
+**Rule:** profile first, optimize the actual bottleneck. Don't apply a generic order without measurement.

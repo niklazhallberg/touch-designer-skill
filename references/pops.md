@@ -685,3 +685,72 @@ These are publicly unresolvable as of 2026-05-31. Capture during real production
 | **Houdini-style inline attribute expressions** (`@P.y > 0` inside operators) | Don't go looking — TD has powerful *index* patterns but no per-point *predicate* expression language. Use `Group POP` / `Math POP` / `GLSL POP` for attribute-value filtering. |
 
 When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.
+
+---
+
+## POP rendering — gotchas captured from real builds
+
+### POPs render invisibly without `PointScale` attribute
+
+**Source:** real Roots/Squirrel build, 2026-06-02 | **Confidence:** HIGH
+
+When you render a POP chain via `Geometry COMP → Render TOP` with a default `constantMAT` (or similar non-GLSL material), points render at the GPU's minimum point size (~1 px) — effectively invisible at typical zoom levels, especially against a dense background like a Gaussian splat. The render IS happening; the points are just too small to see.
+
+**Fix:** add a `PointScale` per-point attribute somewhere in the chain. Cleanest path: an `attributePOP` that creates the built-in attribute `pointscale` (lowercase, the menu name) with value ~0.05–0.10 in world units. The `Geometry COMP`'s native rendering honors this attribute for point size.
+
+```
+... scatter POP → attributePOP (attr0name='pointscale', attr0value0=0.06, attrclass='point') → null POP
+```
+
+Without this step, debugging "my POPs don't appear" wastes time on flags/materials/transforms that are all correct.
+
+### `sprinklePOP method='perprim'` distributes points PER TRIANGLE, not per area
+
+**Source:** real Roots scatter, 2026-06-02 (caught via direct Y-histogram probe of `OUT.points('PointScale')`) | **Confidence:** HIGH
+
+The intuitive assumption — "perprim = N points per primitive scaled by primitive area" — is **wrong**. Empirical measurement shows `perprim` distributes roughly the same number of points to EVERY triangle in the input mesh, regardless of triangle size. With a procedural mesh where deeper recursion levels have many small triangles, all those small triangles each get ~equal points → tip-heavy density even when total surface area is concentrated near the base.
+
+**Symptom:** "I want denser scatter near thick parts, sparse at thin tips" produces the OPPOSITE — tips look denser because there are more tip-triangles competing for the point budget.
+
+**Fix:** control density by adjusting **triangle count per region**, not radius/area. Use depth-aware tessellation when generating the mesh — more `TUBE_SIDES` (more triangles per ring) on top-level segments, fewer on tips. Concretely, for an L-system mesh with K levels: `tube_sides_by_level = [32, 8, 4]` produces ~60%/25%/15% point distribution between levels.
+
+**Verify gradient with this probe pattern:**
+```python
+positions = op('/path/OUT').points('P', delayed=False)
+ys = [p[1] for p in positions]
+# 5-bin histogram by Y reveals actual distribution
+```
+
+### `SOP to POP` has 0 input connectors — uses `par.sop` reference, not wire
+
+**Source:** Roots+Squirrel builds, 2026-06-02 | **Confidence:** HIGH
+
+The `soptoPOP` bridge does NOT take wire input. Its op type has **zero input connectors** (`o.inputConnectors` length 0). Attempting `connect_ops(fileinSOP, soptoPOP)` fails with `"Destination input index 0 out of range"`.
+
+Instead, set the SOP-source via the **`sop` parameter** (style `SOP`, in the SOP-to-POP page). The parameter accepts an operator reference (sibling-relative is cleanest):
+
+```python
+op('.../sop_to_pop').par.sop = 'filein_sop_name'   # sibling reference
+# OR
+op('.../sop_to_pop').par.sop = op('.../filein_sop_name')  # direct OP assignment
+```
+
+Downstream POPs wire from `sop_to_pop`'s output normally. This is a family-bridge convention also seen in other "single-source" bridges (verify pattern when encountered).
+
+### `attributePOP.par.attr` is a Sequence — set via `.sequence.numBlocks`, NOT `set_parameter`
+
+**Source:** Squirrel+Roots builds, 2026-06-02 | **Confidence:** HIGH
+
+`attributePOP.par.attr` controls **how many attribute-slots** are active in the op (0 = no attribute created, 1 = `attr0*` block active, etc.). It's a `Sequence`-style parameter — setting it via MCP `set_parameter value="1"` silently fails (the param shows back as `"0"` after the call).
+
+**Correct API** (via `execute_python`):
+```python
+sa = op('.../size_attr')
+sa.par.attr.sequence.numBlocks = 1
+sa.par.attr0name = 'custom'           # or 'pointscale', 'color', etc.
+sa.par.attr0customname = 'MyAttr'     # only if attr0name='custom'
+sa.par.attr0type = 'float'
+sa.par.attr0numcomps = '1'
+```
+
+Same pattern applies to other Sequence-style params on POPs (`matattr`, `ren`, `dup`, `del` blocks on `attributePOP`, plus `const`/`vec`/`color`/`sampler` sequences on `glslPOP`). When MCP `set_parameter` returns a stale value on a Sequence param, switch to `.sequence.numBlocks` via Python.

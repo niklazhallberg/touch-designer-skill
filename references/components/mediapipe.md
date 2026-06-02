@@ -4,11 +4,34 @@ GPU-accelerated MediaPipe plugin by Torin Blankensmith and Dom Scott. Hand / fac
 
 **Mac prerequisite:** Full Disk Access — see `mac-gotchas.md` § "MediaPipe requires Full Disk Access". Without it, the component fails silently with no console error.
 
+**TD version requirement:** TouchDesigner **2022.33910 or later** — the plugin relies on TD's embedded Chromium browser which shipped in that build.
+
+**Source:** [github.com/torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner) — repo README (primary).
+
+---
+
+## Architecture — embedded Chromium + WebAssembly + local WebSocket
+
+**Source:** [github.com/torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner) — repo README (primary) | **Confidence:** HIGH
+
+The plugin does **not** run MediaPipe natively in TD. Internally:
+
+1. TD's embedded Chromium browser hosts the MediaPipe JavaScript bindings.
+2. ML model inference executes via **WebAssembly** in the browser context.
+3. Results are piped from browser → TD via a **local WebSocket server** embedded inside the component.
+4. JSON detection results land on `*_results` DATs; segmentation masks land on internal TOPs.
+
+**Why this matters for the agent:** every observable latency, async-style behavior, or "the data is one frame behind" symptom traces back to this architecture. The ML side is *not* on the cook clock — it runs at its own pace in the browser process and crosses into TD via async WebSocket messages. See § "Frame delay" below for the measured consequence; the architecture here is the **root cause** (not a tuning problem).
+
+**Input resolution limit: 720p.** Per the repo README: *"Currently the model is limited to 720p input resolution."* If your camera or source TOP runs at higher resolution, the plugin will down-sample internally. Plan upstream resolution + any upscaling-of-mask logic accordingly.
+
 ---
 
 ## Frame delay — plugin output is ≥3 frames behind realtime
 
 **Source:** TD/MCP research dossier (May 2026), torinmb/mediapipe-touchdesigner | Date: May 2026 | **Confidence:** HIGH (dossier-confirmed + user has hit the symptom in production; Cache TOP workaround is the documented architectural fix)
+
+> **Root cause is documented in § "Architecture" above.** The ≥3 frame lag is not a tuning problem — it's the inherent cost of crossing the browser/WebAssembly/WebSocket boundary on every frame. No plugin configuration removes it. Treat Cache TOP compensation as an architectural requirement for any "overlay on live video" wiring.
 
 The plugin uses an internal web-browser component for ML inference, which introduces a delay of **at least 3 frames** between camera input and tracking output. The `instance_data` channels (hand positions, pose keypoints, etc.) lag the visible webcam feed by that amount.
 
@@ -31,6 +54,21 @@ The plugin uses an internal web-browser component for ML inference, which introd
 
 ---
 
+## Video input — Mac needs OBS Virtual Camera as a bridge for non-webcam sources
+
+**Source:** [github.com/torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner) — repo README (primary) | **Confidence:** HIGH
+
+The plugin reads input from a webcam selector dropdown. For sources that aren't a system-recognized webcam (video file, Syphon stream, NDI input, scriptTOP output, etc.) you need a bridge:
+
+| Platform | Bridge | Notes |
+|---|---|---|
+| **macOS** | OBS Studio → "Start Virtual Camera" | No Syphon equivalent supported by the plugin. OBS becomes a virtual webcam that the plugin's webcam selector then sees. |
+| **Windows** | SpoutCam | Spout-source ↔ SpoutCam → plugin sees as webcam. Multi-GPU laptops may show noise; configure GPU pipeline in SpoutSettings if so. |
+
+This is a recurring "I want to feed a non-camera source into MediaPipe" pattern. The plugin does **not** accept TOP inputs directly — it always reads from a webcam source enumerated by the OS. The OBS / SpoutCam bridge is the architectural workaround.
+
+---
+
 ## Disable unused detection tasks — CPU + GPU savings
 
 **Source:** TD/MCP research dossier (May 2026) | Date: May 2026 | **Confidence:** HIGH (component behavior is documented via the plugin's parameter pages; the per-task cost claim is architectural — each detector runs independently)
@@ -45,6 +83,21 @@ The plugin runs detection tasks on a configurable set: face landmarks, face dete
 - The project clearly only uses one detection modality
 - `get_op_performance` shows the MediaPipe COMP as a hotspot
 - Multiple detection tabs show "On" but only one is wired to anything downstream
+
+---
+
+## Officially unsupported tasks: Interactive Segmentation + Image Embedding
+
+**Source:** [github.com/torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner) — repo README (primary) | **Confidence:** HIGH
+
+Two MediaPipe ML tasks exist in the upstream MediaPipe library but are **not implemented** in this TD plugin:
+
+- **Interactive Segmentation** — click-driven mask refinement (e.g. "click a person, get a clean mask"). Not wired in v0.5.2.
+- **Image Embedding** — produces feature-vector embeddings of an image. Toggle `Detectimageembeddings` exists on the UI but the data path is incomplete.
+
+**Don't waste time trying to enable these for a project.** If embeddings or interactive segmentation are needed, use a separate Python process (e.g. CLIP via `transformers`) and stream results over OSC/WebSocket into TD instead.
+
+The supported tasks are: Face Detection + Face Landmarks, Hand Tracking + Gesture Recognition, Pose Estimation, Object Detection, Image Segmentation (background/foreground + multi-class), Image Classification.
 
 ---
 
@@ -149,6 +202,27 @@ Compare with the alternative `create_op(baseCOMP) + set_parameter(externaltox = 
 - The .tox should be a self-contained internal COMP, not an externalized reference
 
 If the same `loadTox` pattern proves canonical for non-MediaPipe components in future projects, promote this rule out of `mediapipe.md` and into a general "vendored .tox drop-in" section of `references/td-gotchas.md` or similar.
+
+---
+
+## Debugging — Chrome DevTools at `localhost:9222`
+
+**Source:** [github.com/torinmb/mediapipe-touchdesigner](https://github.com/torinmb/mediapipe-touchdesigner) — repo README (primary) | **Confidence:** HIGH
+
+While TD is running with the MediaPipe component active, the embedded Chromium instance exposes its DevTools at:
+
+```
+http://localhost:9222
+```
+
+Open in a regular Chrome / Chromium browser on the same machine. Gives you:
+
+- The WebSocket message stream (browser → TD) for verifying inference output
+- WebAssembly performance profiling (which detector is slow inside the browser process)
+- JavaScript console errors from the MediaPipe runtime
+- Network tab for tracing model-load timing
+
+**When to reach for it:** the TD-side `realtimeCalculatorCHOP` channels (`detectTime`, etc.) show numbers that don't match what you expect, OR detection results look wrong/stale and the cause isn't visible from TD's side. DevTools lets you see the browser-side reality the plugin is hiding.
 
 ---
 

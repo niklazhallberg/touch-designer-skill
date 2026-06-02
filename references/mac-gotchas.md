@@ -94,6 +94,31 @@ MoltenVK rendering-line regressions have caused ~50% FPS drops on Apple Silicon 
 
 ---
 
+## Text TOP Display Method = Polygon broken on some macOS GPUs
+
+**Mac-critical** | Source: Derivative dev forum (multiple staff replies, 2020+), [Text TOP — Derivative wiki](https://docs.derivative.ca/Text_TOP) | Date: evergreen since 2020 default change | **Confidence:** HIGH (user verified pixelated rendering at Automatic-default + 13pt Courier New Bold on M1 Pro 2026-05-31; switching to `dispmethod='scalable'` restored sharp anti-aliased glyphs on the same TOP in the same capture session)
+
+Text TOP's default `dispmethod` is **Automatic**, which selects **Polygon mode** at font sizes above ~10pt. Polygon mode has documented rendering bugs on certain macOS GPUs — glyphs render pixelated, blurry, or with channel-swap artifacts despite correct parameters. Per Derivative dev: *"On some macOS GPUs Display Method = Polygon does not work correctly"* — Derivative changed the default to **Bitmap** "all the time now" in a 2020 build for exactly this reason, but projects ported from older builds or new Text TOPs created via scripts may still land on Automatic.
+
+**Check first when:**
+
+- Text TOP renders pixelated on Mac but is sharp on Windows from the same `.toe`
+- Heading text (>10pt) looks worse than body text (<10pt) in the same composite (Automatic crosses the size threshold for the heading only)
+- A `capture_top` shows visible pixel stairs despite "normal" font sizes
+- A Text TOP was created via `parent.create(textTOP, ...)` (defaults are Automatic) rather than copied from a pre-configured template
+
+**Workaround (Derivative-recommended):** set `dispmethod='scalable'` explicitly on every Text TOP. Per Derivative dev: *"Scalable is the most correct, as that is our most modern font rendering system."* `dispmethod='bitmap'` also works on Mac but is the legacy fallback.
+
+**Don't:**
+
+- Trust Automatic on macOS — it silently picks the broken Polygon path above the size threshold
+- Use `strokewidth` to compensate — it has no effect in Polygon/Bitmap/Scalable (only when `dispmethod='stroke'`, which renders outline-only glyphs)
+- Skip the explicit set on Text TOPs created via `parent.create()` — script-created TOPs need it just as much as UI-dragged ones
+
+Cross-link: `references/text-top.md` for full Text TOP rendering reference (also covers `keepfontratio` silent-ignore, `strokewidth` mode coupling, Specification DAT pattern).
+
+---
+
 ## Known gaps (deliberately empty)
 
 These are publicly unresolvable or untested as of 2026-05-31. Capture during real production work via the growth protocol's pre-ask gates (`skill-growth-protocol.md § Pre-ask filters`):

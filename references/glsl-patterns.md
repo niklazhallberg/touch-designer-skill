@@ -47,6 +47,52 @@ When 3+ production patterns have been captured here through the growth protocol,
 
 ---
 
+## Captured patterns
+
+### `glslPOP.destroy()` does NOT fully release GPU state — restart_td if other shaders misbehave after
+
+**Source:** RADON_TREE Roots pulse-shader experiment, 2026-06-02 | **Confidence:** HIGH (verified by bypass-test + restart_td)
+
+After creating a `glslPOP` with compute shader code, destroying it via `op.destroy()` + destroying its docked DATs leaves the TD-side state clean (no leftover ops, no stale references in audits). **But** GPU-side state — compiled shader programs, SSBO bindings, uniform allocations — is not guaranteed to release. The symptom that surfaces this:
+
+> An UNRELATED GLSL shader elsewhere in the project (typically a `glslMAT` rendering some other geometry — e.g. the splat shader on a separate `geometryCOMP`) starts producing visual artifacts (clipping, channel swaps, missing geometry) that look like camera/frustum issues but actually originate from corrupt GPU buffer reads.
+
+**Diagnosis pattern:**
+1. Audit Python-side: list children of the affected COMP, check wires, flags, transforms — everything looks normal
+2. Bypass the suspected new ops — artifact persists → eliminates COMP-level cause
+3. Conclude: stale GPU state. Run `restart_td`.
+
+**Fix:** `mcp__envoy__restart_td`. The relaunch clears TD's GPU context completely. All persisted .toe state (operators, params, wires) survives intact; only the volatile shader-program cache is rebuilt.
+
+**Avoid the trap:** when iterating on `glslPOP` configs and seeing weird side-effects in unrelated parts of the project, don't spend time hunting for camera or transform changes you didn't make. Restart first, debug second.
+
+### `glslPOP.numthreadsmode='auto'` is unreliable — set thread count explicitly
+
+**Source:** same experiment, 2026-06-02 | **Confidence:** HIGH
+
+The default `numthreadsmode='auto'` does NOT consistently derive the dispatch count from the wire input — observed dispatching only **1 thread** for a 22 000-point input POP, regardless of the wired upstream POP's point count. The shader compiles successfully and the op shows green, but only point id=0 runs the kernel. Symptom: shader appears to do nothing despite correct code and uniforms.
+
+**Fix — pick one explicitly:**
+
+```python
+# Option A: explicit numelems (manual count)
+g.par.numthreadsmode = 'numelems'
+g.par.numelems = 22000  # must match upstream point count
+
+# Option B: derive from another POP's element count (preferred when chain length can vary)
+g.par.numthreadsmode = 'otherinputelements'
+g.par.numelemspop = 'upstream_pop_name'  # sibling-relative path
+g.par.numelemsclass = 'point'  # or 'primitive', 'vertex'
+```
+
+**Don't rely on 'auto'** for compute shaders that should iterate over a wired input. Confirm dispatch count by checking the `*_info` DAT after first cook — if it doesn't show the expected thread count, the mode is wrong.
+
+### POPs in `Geometry COMP` need either `PointScale` attribute OR a custom shader — `constantMAT` alone renders 1px
+
+See `pops.md § "POPs render invisibly without PointScale attribute"`. Cross-listed here because the workaround sometimes involves a custom `glslMAT` (or `glslmultiTOP`) for billboard-sized particles instead of relying on per-point `PointScale`. Both paths are valid; the attribute path is simpler and documented; the glslMAT path is needed when you want per-point shape control (soft discs, splat-style billboards, custom blending).
+
+---
+
 ## Known gaps
 
 For the gap-list specific to this file, see § "Don't" and § "How this gap closes" above — they enumerate the categories deliberately reserved for empirical capture (workgroup sizing on Apple GPUs, SSBO state on MoltenVK, glslTOP/MAT/multi structural criteria, multi-input ordering, Mac-specific shader gotchas beyond 16-sampler, debugging conventions). Listing them again as a Known-gaps table would duplicate without adding signal — the stub IS the gap-list.
