@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 🌱 2026-06-07 — [project: skill-meta — repo structure]
+
+- **Add ROADMAP.md for forward-looking deferred work**: New top-level file tracking items deferred from preemptive import per the v0.3 protocol's "external source = MEDIUM" philosophy. Each entry has an explicit trigger condition (what real-world event should bring it back into scope). First item: Perform Mode / kiosk deployment gotchas, deferred until RADON_TREE (or another project) ships — so we can capture HIGH-confidence empirical gotchas instead of MEDIUM wiki distillation.
+- Value for user: Makes deferred-but-not-forgotten work visible. Future maintainers (or future-self) can see WHY something wasn't imported AND what trigger should bring it back into scope, without losing the consideration to memory.
+- File: `ROADMAP.md` (new)
+- Type: [convention]
+
 ### 💡 2026-06-07 — [project: RADON_TREE + research-dossier dual-source]
 
 - **Scope MCP queries by path prefix / family / depth to prevent 40–80% context-window bloat**: Flat queries on `/project1` root return verbose JSON that consumes huge fractions of context. Default scoping: narrow path first, then `type=` filter, then `depth=` bound. For ≥3 operator reads, `read_tdn` (with default-omission) is 20–90× cheaper than per-tool walks. Dual-sourced: own observation (MCP timeouts after stacked verbose probes in RADON grid-debugging, restart_td required to recover) + external MCP-agent research (40–80% bloat metric).
