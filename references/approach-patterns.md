@@ -96,6 +96,28 @@ once capability is confirmed.
 
 ---
 
+## Check OP Snippets and Palette before building from scratch
+
+**Source:** [TouchDesigner UserGuide — OP Snippets](https://derivative.ca/UserGuide/OP_Snippets) + [Palette](https://derivative.ca/UserGuide/Palette) | Date: pages fetched 2026-06-07 | **Confidence:** MEDIUM (external, vendor-documented; the access paths and existence of each surface are vendor-stated, but specific snippet/component contents have not been personally verified for any current task)
+
+TouchDesigner ships two built-in discovery surfaces that often contain a working starting point for standard patterns. Check them before generating a from-scratch implementation.
+
+- **OP Snippets** — operator-level examples, copy-paste into the network. Access: `Help menu → Operator Snippets`, OR right-click an operator in the network and select "Operator Snippets…", OR right-click an operator name in the OP Create dialog. Each snippet ships with a `readMe` Text DAT explaining when and how to apply it.
+- **Palette Browser** — reusable COMP-level components, drag-drop into the network. Access: `Dialogs → Palette Browser`, OR the palette icon at the top-left of the UI, OR `ui.openPaletteBrowser()` from Python. Preview thumbnails are also droppable.
+
+**Rule for the agent (discovery-first):**
+
+Before generating a from-scratch implementation of a recognizable TD pattern (audio reactivity, basic scatter, simple instancing, dialog UI, projection calibration, common utility wiring, etc.), say to the user: "I'll check OP Snippets / Palette for an existing starting point first." Then either:
+
+- Propose using the existing one (cite which snippet or palette component), OR
+- Justify why building from scratch is needed (existing is wrong shape, missing a specific feature, target platform conflict, etc.).
+
+The implementation cost of "check first" is one read; the cost of redoing work when the user later points at a shipped example is hours. This is a META-pattern about agent behavior, not technical TD content.
+
+**Status: verify before relying — pages dated to 2026-06-07 fetch; re-check the Help / Dialogs menu paths in the user's TD build if a snippet or palette item isn't where this entry says it is.** Wiki content and menu organization occasionally rearrange between TD releases.
+
+---
+
 ## Scope MCP queries to prevent context-window bloat
 
 **Source:** RADON_TREE shared particles/grid pipeline, 2026-06-07 (own observation — MCP timeouts after multiple verbose probes during a grid-debugging session; restart_td required to recover) + [Reddit r/AI_Agents discussion on tool-response bloat](https://www.reddit.com/r/AI_Agents/comments/1rlucg7/) + general MCP-agent research, late 2025 (corroborating reference) | **Confidence:** HIGH (dual-sourced)
