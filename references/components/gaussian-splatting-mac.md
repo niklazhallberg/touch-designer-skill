@@ -111,6 +111,26 @@ This is the path Derivative themselves are investing in. **Status: to verify in 
 
 ---
 
+## 4D / animated Gaussian splats — not supported in TD (workaround: image-sequence point clouds)
+
+**Source:** [Derivative forum thread "4D Gaussian Splat - POPs"](https://forum.derivative.ca/t/4d-gaussian-splat/562056) | Date: November 2024 | **Confidence:** MEDIUM (Derivative's own response on the thread; status verified still current via May 2026 research dossier, not personally tested)
+
+TD has no native support for 4D / animated Gaussian splats (splat-fields that change over time as a continuous animation). Derivative has not announced plans for it.
+
+**Current workaround:** record the point cloud as an **image sequence** — bake each frame's positions/colors to a 2D texture (per-point P → RGB pixels), then sample the sequence as a normal Movie File In TOP and reconstruct points per-frame on the GPU.
+
+**Limitations of the workaround:**
+
+- Pre-computed only (no real-time deformation)
+- Memory-heavy at high point counts (each frame = full point cloud as image)
+- Loses Gaussian-specific attributes (rotation, scale-3, spherical harmonics) unless packed into additional textures
+
+**Don't suggest:** "use a 4D splat renderer in TD" — there is none. If the user asks for an animated splat scene, surface this constraint and propose either the image-sequence workaround or a non-splat alternative (POP particle system, instanced geometry).
+
+**Status: verify before relying — source dated 2024-11; re-check Derivative release notes if this trips a user.** Native 4D splat support could land in a future release; the constraint is current as of TD 2025.32820 but not guaranteed forward.
+
+---
+
 ## Decision rule
 
 When a user asks "what Gaussian splat component should I use on Mac?" — the answer depends on context:

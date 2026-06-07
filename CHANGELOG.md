@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — research-dossier audit]
+
+- **4D / animated Gaussian splats are not supported in TouchDesigner — workaround is image-sequence point clouds**: Bake per-frame point positions to a 2D texture sequence, sample as Movie File In TOP, reconstruct on GPU. Don't propose "use a 4D splat renderer in TD" — there is none. External-only source (Derivative forum), MEDIUM confidence + re-check obligation per protocol v0.3.
+- Value for user: Prevents agent from confidently suggesting a non-existent feature when user asks for animated splats — and gives a concrete workaround if the use case is pre-computed.
+- File: `references/components/gaussian-splatting-mac.md` § 4D / animated Gaussian splats — not supported in TD
+- Type: [docs]
+
 ### 🔧 2026-06-07 — [project: skill-meta — protocol v0.3]
 
 - **Skill-growth-protocol gains Source confidence tiers (own empiry vs external research vs dual-sourced)**: Gate 1 now distinguishes three evidence types. Own empiry → HIGH no re-check. External (forum/research/vendor) → MEDIUM max + obligatory `verify before relying — source dated YYYY-MM-DD` line. Dual-sourced (own + external corroboration) → HIGH with both citations. Reason: previous protocol left implicit how external research should be represented; entries from external sources started appearing without re-check obligations, making it impossible for readers to tell "we know" from "someone reported".
