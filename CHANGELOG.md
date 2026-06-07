@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — user-provided StreamDiffusion dossier import]
+
+- **StreamDiffusion + TouchDesigner on Mac M1 — master reference imported**: New comprehensive reference covering Route A (StreamDiffusionTD operator + Daydream cloud backend) vs Route B (Daydream Scope + Remote Inference + Syphon) decision matrix, the model-gated ControlNet table (SD-Turbo gets OpenPose but no IP-Adapter; SDXL-Turbo gets IP-Adapter+FaceID but no pose; SD1.5 gets both; Wan2.1 uses VACE not SD-CN), Mac-specific local-NVIDIA blockers (TensorRT/CUDA), server-side preprocessing rules (Daydream mode = raw camera to IN1 only, server runs depth/canny/HED/OpenPose), low-latency architecture and feedback patterns, MediaPipe → parameter modulation chain, audio-reactive parameter binding, parameter surface, Mac setup + known errors, and a 10-item TEST-before-relying checklist. External-source-only (user-provided dossier referencing dotsimulate.com/docs/streamdiffusiontd + docs.daydream.live as primary sources), MEDIUM confidence + re-check per protocol v0.3. Document's own `[OK]/[LIKELY]/[INFER]/[TEST]` tags mapped to v0.3 tiers in file header.
+- Value for user: Eliminates the need to re-research StreamDiffusion architecture every time it comes up — gives the agent a complete map of the route decision (Daydream operator is default; Scope is secondary for Wan2.1), the model→ControlNet matrix (the most common planning mistake the document calls out), and the Mac-specific gotchas (TensorRT not available; CoreML bridge to TEST; numpy crash fix) in one place. Plus an explicit re-check checklist for the most volatile items.
+- File: `references/components/streamdiffusion-td-mac.md` (new) + `SKILL.md` Reference Lookup row
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — wiki audit]
 
 - **Check OP Snippets and Palette before building TD patterns from scratch**: TD ships two discovery surfaces — OP Snippets (operator-level examples, `Help menu → Operator Snippets`) and Palette Browser (reusable COMPs, `Dialogs → Palette Browser`). Both should be checked before generating from-scratch implementations of recognizable patterns. The agent should explicitly say "I'll check OP Snippets / Palette first" before proceeding to build. External-only source (Derivative wiki), MEDIUM confidence + re-check per protocol v0.3.
