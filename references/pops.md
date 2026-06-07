@@ -869,3 +869,43 @@ set_color_B.par.attr0value3 = 77    # alpha for branch B
 **When the MAT is `constantMAT`:** ensure `applypointcolor=True` so per-point Color overrides the MAT's uniform color.
 
 **Mode-switch variant:** if the two "branches" are actually the same chain in different modes (via `switchPOP`), branch the attribute-setting expressions on the mode parameter — see also "Mode-switching a shared POP-chain — branch ALL noise/mutator sources" earlier in this section.
+
+### Inspect external geometry-source attributes before merging into an existing chain
+
+**Source:** External baked-PLY merging into a constantMAT-driven pipeline, 2026-05 to 2026-06 | **Confidence:** HIGH
+
+When merging a newly-loaded POP source (`fileinPOP` of a PLY/GLB, freshly generated POPs from a SOP-bridge, output of an external bake) into a chain that's already rendering correctly, the source's attributes must match the existing chain's expectations in three dimensions: **name**, **component count**, and **value scale**.
+
+If any of these mismatch, the merge succeeds silently — no error, no warning — but the rendered output is wrong or invisible. The downstream MAT may receive `Color` when it expects `Cd`, may read a 0–1 float as if it were 0–255 byte (or vice versa), or may sample component 3 of a vec4 when only vec3 was provided.
+
+**Inspection recipe — run BEFORE wiring the merge:**
+
+```python
+src_pop = op('.../newly_loaded_pop')
+
+# 1. Attribute names + classes
+print(src_pop.pointAttributes)        # → {'P', 'Color', 'PointScale', ...}
+print(src_pop.vertexAttributes)
+print(src_pop.primAttributes)
+
+# 2. Sample 1–5 points to see actual values + ranges + component counts
+for name in src_pop.pointAttributes:
+    vals = src_pop.points(name, delayed=False)[:3]
+    print(f"{name}: {vals}")
+```
+
+Compare against the existing chain's expectations — sample the same attribute on the downstream `null`/OUT to see what range and naming the MAT actually consumes.
+
+**Common mismatches to check for:**
+
+- **Color attribute name**: `Color` vs `Cd` vs `color` (case matters in some POP API surfaces).
+- **Color value scale**: 0–1 float vs 0–255 byte — baked PLY conventions vary by baker tool. A PLY with `Color=(0.5, 0.5, 0.5)` and one with `Color=(127, 127, 127)` both look "right" in isolation but mix wrong.
+- **Component count**: `Color` may be vec3 (RGB) or vec4 (RGBA). Synthetic source with vec3 merged with baked vec4 leaves alpha undefined.
+- **PointScale presence**: some PLY bakers include per-point `PointScale`; others omit it. Synthetic points without `PointScale` render at GPU minimum (~1px) when mixed with baked points that scale correctly.
+- **Per-point transforms**: Gaussian-splat PLYs carry rotation/scale-3 attributes; merging plain points into that chain leaves those attributes undefined for the new points.
+
+**Fix pattern when mismatch is found:**
+
+Insert an `attributePOP` (or `attributecreatePOP`) on the new branch BEFORE the merge that synthesizes the missing attributes at matching name/count/scale. For value-scale mismatch (0–1 float to 0–255 byte), use a `mathPOP` to rescale before the merge.
+
+**Verify:** after merging, capture the render and compare against the pre-merge baseline. If the rendered output differs in color, size, or visibility from "what the new points should add", run the inspection recipe on both branches at the merge point and reconcile.

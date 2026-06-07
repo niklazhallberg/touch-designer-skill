@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-07 — [project: RADON_TREE]
 
+- **Inspect external geometry-source attributes before merging into an existing chain**: When merging a freshly loaded POP source (PLY, SOP-bridge, external bake) into an existing chain, attribute names + component counts + value scales must match the downstream consumer's expectations. Mismatches merge silently — no error, wrong output downstream. Recipe: probe `pointAttributes` + sample 1–5 values BEFORE wiring.
+- Value for user: Avoids "I merged the new source and now the colors are wrong / points are invisible / one branch dominates" debug sessions — gives a pre-merge inspection checklist and concrete mismatch examples (Color vs Cd, 0–1 float vs 0–255 byte, vec3 vs vec4, missing PointScale).
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
 - **Single MAT downstream of a merge applies to all inputs — branch styling per-point upstream**: For per-branch alpha/color/blending in a merged POP chain, set per-point Color BEFORE the merge — the MAT honors per-point values when configured for it (`constantMAT.applypointcolor=True`). Adjusting MAT-level alpha dims ALL merged inputs uniformly.
 - Value for user: Resolves "I changed alpha on one branch and BOTH dimmed" confusion with a clean architecture pattern that doesn't require duplicating MATs.
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
