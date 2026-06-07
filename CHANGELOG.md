@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 6/6]
+
+- **Decision rule: `execute_python` vs many MCP calls (or `batch_operations`)**: Prefer one `execute_python` for builds with loops, conditionals, or computed positions; prefer many MCP calls (or `batch_operations`) when each step needs independent error visibility. Plus a heavy-network override: ≥10 ops at once on a heavy parent → many MCP calls with bypass-first, even when the build is loop-shaped, to avoid the topology-hang failure documented in `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor". Own-empiry: silent hang reproduced under stacked `execute_python` builds in production sessions; per-call MCP variant with bypass-first did not exhibit the hang.
+- Value for user: gives the agent a written-down decision recipe for the single most common build-time judgment call, instead of re-deriving it each session. The override rule prevents the loop-form reflex from triggering the topology-hang failure mode.
+- File: `skills/mcp-tools-reference/SKILL.md` § Choosing `execute_python` vs many MCP calls (or `batch_operations`)
+- Type: [discovery]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 5/6]
 
 - **Prefer `run(myFunction, arg, delayFrames=N)` over `run("myFunction(arg)", ...)`**: Passing a callable avoids string parsing, surfaces `NameError` / `AttributeError` at call time instead of after the delay fires, and keeps stack traces readable (traceback points at the function body, not a runtime-compiled string). Reach for the string form only when the callable doesn't exist in the current scope at scheduling time.
