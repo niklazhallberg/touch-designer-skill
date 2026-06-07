@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: RADON_TREE]
+
+- **Shared POP-chain with mode-switch — branch ALL noise sources, not just the obvious one**: When a chain serves multiple visual modes (particles/grid) via switchPOP, all per-point noise/jitter ops downstream must be mode-branched, not just the obviously-named one. Symptom of partial branching: motion stops but output is still statically broken — diagnostic fingerprint of a second source (typically per-point random with `t4d=0`) still active. Long-wavelength noise (period >> cell size) is safe both modes; empirically verified in source incident at period=0.05m (broke 0.04m cells) vs period=8m (preserved 50×50 grid).
+- Value for user: Saves hours when "I branched the noise but my grid is still torn apart" — gives a direct diagnostic ("motion stopped but still broken = static source still active") and a complete fix recipe with empirically-verified safe vs unsafe noise periods.
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
 ### 💡 2026-06-02 — [project: skill-meta — Perplexity-report audit + primary-source anchoring]
 
 User shared a Perplexity-generated TouchDesigner architecture report and asked which findings the skill should adopt. Audit produced two adds (depth peel, performance optimization) and one defer (two-layer sim/visual architecture — no Derivative primary source found). The exercise surfaced a **methodological learning worth keeping**: AI-synthesis reports can be confidently wrong on specifics, even when the surrounding framing is correct.

@@ -754,3 +754,38 @@ sa.par.attr0numcomps = '1'
 ```
 
 Same pattern applies to other Sequence-style params on POPs (`matattr`, `ren`, `dup`, `del` blocks on `attributePOP`, plus `const`/`vec`/`color`/`sampler` sequences on `glslPOP`). When MCP `set_parameter` returns a stale value on a Sequence param, switch to `.sequence.numBlocks` via Python.
+
+### Mode-switching a shared POP-chain — branch ALL noise/mutator sources, not just the obvious one
+
+**Source:** Shared particles/grid pipeline, 2026-06-07 | **Confidence:** HIGH (user-isolated root cause via empirical "motion stopped but still broken" signal)
+
+When a single POP-chain serves multiple visual modes via a `switchPOP` (e.g. organic particles vs structured grid sharing the same deformation/styling chain), and the chain contains noise or random mutator ops downstream of the switch, **every** such op affecting position or topology must be mode-branched — not just the obviously-named one that matches the current task.
+
+**Symptom of incomplete branching:** Animated motion stops correctly when the obvious noise (e.g. an op called `ground_noise`) is branched to `amp=0` in the topology-mode, but the rendered output is STILL broken statically — grid lines torn apart, point positions scrambled, faces not closed. This is the diagnostic fingerprint of a SECOND noise source (typically per-point random with `t4d=0`, named generically like `rand_noise`) still active.
+
+**Detection before building:** Before introducing a mode-switch, enumerate ALL downstream ops that write to `P` or other topology-relevant attributes:
+
+- `noisePOP` with `noiseoutputattrscope='P'` (writes P directly)
+- `noisePOP` writing a delta attribute consumed by a downstream `mathcombinePOP` that mutates P
+- `attributePOP` writing P
+- per-point `mathcombinePOP` with random/jitter terms
+
+Per-point random with short period (< topology cell size) tears apart any line/face-based topology; long-wavelength noise (period >> cell size) does not. **Both directions are empirically verified** in the source incident — short-period per-point noise (`rand_noise`, period=0.05m on 0.04m grid cells) visibly tore grid lines in still frames; switching to long-wavelength coherent noise at period=8m on 50×50 cells preserved grid closure at comparable amplitude. The failure mode is exclusively short-period noise relative to cell size.
+
+**Fix pattern:**
+
+```python
+# branch every risk source on the mode parameter
+noise_op.par.amp0.expr = "0.0 if parent.X.par.Mode == 'topology_mode' else 1.0"
+```
+
+Or for a tunable wave-style replacement in topology-mode:
+
+```python
+noise_op.par.period.expr = "parent.X.par.WaveLongPeriod if parent.X.par.Mode == 'topology_mode' else parent.X.par.NormalPeriod"
+noise_op.par.amp0.expr   = "parent.X.par.WaveAmp        if parent.X.par.Mode == 'topology_mode' else parent.X.par.NormalAmp"
+```
+
+**Acceptance test:** In topology-mode with all wave/animation rattar at zero, the rendered output must be (a) perfectly static across frames AND (b) geometrically clean (lines straight, faces closed). If either fails, a static noise source is still active.
+
+**User-side diagnostic heuristic worth listening for:** if the operator observes "motion stopped but the output is still broken" after branching the obvious source, a static per-point noise is still active. Search for downstream noise ops with `t4d = 0` and short `period`.
