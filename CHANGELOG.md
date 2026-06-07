@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-07 — [project: RADON_TREE]
 
+- **mathcombinePOP binary ops are component-wise on multi-component attributes**: `min/max/add/mult` between two float3 attributes operates per-component — no separate combs needed. Empirically confirmed via stress test in source incident (max-amplitude inputs → ceiling held on Y, X and Z untouched via 1e6 sentinels).
+- Value for user: Removes guesswork when designing per-component clamps or ops on vector attributes — and shows the stress-test pattern to verify component-wise behavior on other ops before depending on it.
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
 - **Topology change + large cook hangs TD — use bypass-during-refactor**: Creating, deleting, or rewiring ops downstream of high-density POP chains hangs TD silently (UI frozen, MCP timeouts on trivial probes, no crash, unsaved work lost). Defensive pattern: bypass new op first → configure → wire → unbypass last. Density-reduction is the fallback when bypass isn't applicable.
 - Value for user: Eliminates a class of "TD froze and I lost work" incidents — gives a concrete recipe for safe refactoring of large pipelines.
 - File: `references/td-gotchas.md` § TD stability gotchas captured from real work

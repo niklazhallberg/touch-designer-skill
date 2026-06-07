@@ -789,3 +789,25 @@ noise_op.par.amp0.expr   = "parent.X.par.WaveAmp        if parent.X.par.Mode == 
 **Acceptance test:** In topology-mode with all wave/animation rattar at zero, the rendered output must be (a) perfectly static across frames AND (b) geometrically clean (lines straight, faces closed). If either fails, a static noise source is still active.
 
 **User-side diagnostic heuristic worth listening for:** if the operator observes "motion stopped but the output is still broken" after branching the obvious source, a static per-point noise is still active. Search for downstream noise ops with `t4d = 0` and short `period`.
+
+### `mathcombinePOP` binary ops are component-wise on multi-component attributes
+
+**Source:** Y-ceiling clamp in shared deformation chain, 2026-06-04 (stress-tested with extreme parameter values to confirm) | **Confidence:** HIGH
+
+When `mathcombinePOP` applies a binary op (`min`, `max`, `add`, `mult`, etc.) between two float3 attributes (typically P vs another vector), the operation is performed **component-wise** — no per-component setup needed.
+
+```python
+# Clamp only P.y to a ceiling without touching X or Z — sentinels on X and Z:
+y_ceiling.par.vec0value0 = 1e6        # X — effectively no clamp
+y_ceiling.par.vec0value1 = -0.915     # Y — actual ceiling
+y_ceiling.par.vec0value2 = 1e6        # Z — effectively no clamp
+y_ceiling.par.comb0oper = 'min'
+y_ceiling.par.comb0scopea = 'P'
+y_ceiling.par.comb0scopeb = 'y_ceiling'
+y_ceiling.par.comb0result = 'P'
+# Result: P.x = min(P.x, 1e6) = P.x, P.y = min(P.y, -0.915), P.z = min(P.z, 1e6) = P.z
+```
+
+Component-wise behavior was uncertain before empirical confirmation — alternatives considered were "3 separate min-combs, one per component" or "use `clamp` instead". This is the simpler path. Verified via stress test: max-amplitude noise + max-amplitude masters all turned on — `max(P.y)` remained ≤ -0.915 in all cases.
+
+**Verify pattern when designing a single-component clamp:** stress-test before relying on it — push upstream values past the ceiling and check `numpyArray('P').max(axis=0)` after the clamp. Don't assume.
