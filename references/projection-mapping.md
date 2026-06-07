@@ -102,6 +102,8 @@ The mapping Palette COMPs (KantanMapper, camSchnappr, stoner, projectorBlend, qu
 
 **Auto Blend page (multi-projector):** Uses Light COMPs to find overlapping projection regions and applies **Blend, Gamma (R/G/B), Luminance** per Paul Bourke's edge-blend paper (paulbourke.net/miscellaneous/edgeblend). Specify all other camSchnappr Camera COMPs in **camSchnappr Cameras**; Output 0 of the COMP becomes the blend mask between projectors. (Confidence: high.)
 
+**Multi-projector blending on a single 3D model — Dec 2025 docs update:** Multiple CamSchnappr instances can be aligned against the *same* 3D model, with their blend-masks combined for seamless multi-projector output on one physical structure. This is the recommended native path when one object is illuminated by several overlapping projectors (e.g., one sculpture from three angles). Per second dossier 2026-06-07 referencing the Derivative wiki entry updated December 2025 — **verify the exact UI workflow against your TD build before relying** on the multi-instance behavior.
+
 **OSC control:** Full TouchOSC layout (iPad/iPhone) with channels like `/1/selectPointNext`, `/1/pointFine`, `/1/altleft` etc., enabling on-site point nudging from a mobile device.
 
 **When to use vs manual:** Use CamSchnappr when you have an accurate digital model of the surface — calibration becomes "a snap" with ~6–12 points. Use KantanMapper/Stoner when you have no model and the surface is flat or simple (manual corner-pin/mesh). (Confidence: high — Interactive & Immersive HQ.)
@@ -119,7 +121,8 @@ The mapping Palette COMPs (KantanMapper, camSchnappr, stoner, projectorBlend, qu
 - **projectorBlend (Palette):** Blends NxM projector arrays. Based on Jeffrey Crouse's **ofxProjectorBlend** openFrameworks add-on, implementing Paul Bourke's "Edge blending using commodity projectors" (2004). Params: **Projector Array** (e.g., 1x2 = two stacked), **Projector Resolution** (all projectors must be same resolution), **Blankout Edges** (px), **Solid Edge** (solid-color blend region for setup), per-projector **Gamma/Hue/Sat/Value**, and **Per Side Control** for non-straight blend areas and independent edge color. Tip: set Array to 1×1 + Per Side Control to produce reusable blend masks you multiply against your own output. The 58140 build added a GLSL update; users report difficulty pushing it past 2 projectors without rebuilding. (Confidence: high for params; medium for the >2-projector limitation — forum-reported.)
 - **Manual edge blend (nVoid method):** Split full-res content (e.g., 3840×1080) with **Crop TOPs**, offsetting each by half the blend zone (e.g., 128px each toward center = 256px overlap), then multiply blended edges by **alpha ramps** and composite onto a full-projector-resolution canvas. The key gotcha: pixels are discarded on non-blended edges, so "always be aware of this loss of pixels… to avoid placing critical information… around areas where pixels may be discarded." (Confidence: high — nVoid Introduction to TouchDesigner.)
 - **Third-party automated:** **VIOSO** and **Scalable Display** are natively integrated — load calibration data from their external camera-based auto-alignment software via the **Scalable Display TOP** / Vioso integration, for domes, panoramas, and complex multi-projector blends. (Confidence: high.)
-- **sweetSpot (Palette):** Trompe-l'œil — renders a scene from the observer's position and re-projects onto a surface for perspective illusions. For pixel-perfect LED/XR use **quadReproject** instead.
+- **VIOSO operational notes — per second dossier 2026-06-07 (re-verify against VIOSO/Derivative docs at project-spec time; product details drift over major releases):** Workflow uses an external camera (Logitech HD Pro range reported to work well per Derivative); aim for **10–25% projector overlap** (dossier-cited target — verify current VIOSO guidance); camera must see the whole scene and stay locked during calibration. **Trial reportedly 30-day with watermark** (dossier-cited; verify on VIOSO's site). Reported to support NVIDIA Surround/Mosaic, AMD Eyefinity, Matrox, Datapath single-large-display configs via "Display Split". **These operational specifics are 2026-06-07 dossier-sourced — operating numbers drift; never quote them without re-checking the vendor at project-spec time.**
+- **sweetSpot (Palette):** Trompe-l'œil — renders a scene from the observer's position and re-projects onto a surface for perspective illusions. **For pixel-perfect LED/XR, prefer `quadReproject`** — sweetSpot is approximate from one viewpoint; `quadReproject` has matured as the canonical perspective-correct path. (Cross-confirmed in second dossier 2026-06-07.)
 
 ---
 
@@ -156,6 +159,8 @@ The workflow is: model the surface → place a Camera COMP as a stand-in project
 - **Multi-surface (still 2D-ish):** KantanMapper layers/groups — one shape per facet, each with its own texture and softedge. Or multiple Stoner instances (bake displacement maps, then remove Stoner for performance).
 - **Full 3D geometry:** CamSchnappr — render a textured 3D model from a calibrated virtual projector. Required when the surface has genuine depth/curvature and you have a model.
 
+**[SPECULATIVE — forward-looking, not yet observed end-to-end in this skill's production work]** For surfaces *without* a hand-built 3D model, community work on **TensorRT + Depth Anything** (on Windows/NVIDIA) and the **CoreML-TDSyphon Bridge** running DepthAnythingV2 on the Apple Neural Engine on Mac (see `references/components/streamdiffusion-td-mac.md` § 2, where the CoreML bridge is flagged `[TEST]`) suggests a path toward deriving surface geometry from a depth camera or monocular-depth estimation rather than authoring a model — bridging toward auto-mapping of unmodeled surfaces. Second dossier (2026-06-07) lists this as a forward-looking community direction. **Treat as a research thread to watch, not a workflow to recommend until verified end-to-end on a real install.**
+
 ### 3.2 2D-content-on-flat (KantanMapper) vs 3D-object (CamSchnappr) — decision rule
 Interactive & Immersive HQ's rule: simple keystone/grid → **Stoner**; flat polygon/bezier masking like MadMapper → **KantanMapper**; complex surface *with* an accurate 3D model → **CamSchnappr** (great because alignment needs only a handful of points, but you must have/create the model). (Confidence: high.)
 
@@ -189,6 +194,9 @@ Use **GPU Affinity** (one TD process per GPU, supported since 2022.20000) for mu
 - **Stoner** (Palette) outputs a warped image **plus a displacement map** for the **Remap TOP** — the recommended reproducible/performant pattern (bake then delete the UI). (Confidence: high.)
 - **ProjectorSplit** — forum.derivative.ca/t/projectorsplit-edge-blend-for-multiple-projectors/1874 — shared .tox splitting one image into corner-pinned, edge-blended projector feeds. (Older shared component.)
 - **Richard-Burns/SimpleMixer** and **Richard-Burns/Mara_Lite** — github.com/Richard-Burns — TouchDesigner media-server/VJ systems; Mara_Lite adds projection-mapped sets, previz, and feed mapping; mapping mode embeds the **stoner** plus **"Warpa"** (a polygon drawing/warping tool). Tested in build 2023.12000. Useful as a full playback+mapping front-end. (Confidence: high — last activity recent, active Discord.)
+- **Warpa (standalone)** — Richard Burns — **github.com/Richard-Burns/Warpa** — standalone 2D mesh/polygon-drawing warp tool; lighter and more intuitive than KantanMapper for some jobs (used for car mapping per the author). Older repo (~2022) but still circulated; also bundled inside Mara_Lite/SimpleMixer's mapping mode. Tutorial: YouTube `Ig19XN008Yw`. (Confidence: medium — direct GitHub link + active community circulation; second dossier 2026-06-07.)
+- **Dylan Roscover — pixel-map component for LED volumes** — highly customizable pixel-map generator using a Geometry COMP replicator setup; community-reported go-to for **LED-volume / pixel-mapping** work (a category otherwise uncovered in this reference). Direct repo URL not yet captured here — locate via Dylan Roscover's distribution channels (dylanroscover.com / Derivative community-post links / Patreon — see Patreon caveat at end of this section). (Confidence: medium — second dossier 2026-06-07; verify current distribution path before recommending.)
+- **TD-WebRTC-LAN** — jshea2 — **github.com/jshea2/TD-WebRTC-LAN** — low-latency LAN video streaming over WebRTC; useful glue for multi-machine mapping rigs when NDI's latency or bandwidth isn't acceptable. (Confidence: medium — second dossier 2026-06-07; verify against current WebRTC build requirements.)
 
 **Notable creators' shared toolkits:**
 - **Function Store (Daniel Molnar, functionstore.xyz)** — **github.com/function-store/FunctionStore_tools** — workflow/UX toolkit (operator defaults, custom-par promotion, MIDI/OSC mappers, ColorUI, BorderlessTD). Actively maintained — releases include **TD2025.31150 compatibility** fixes; minimum TD 2023.11600/11880. Not mapping-specific but the de-facto pro workflow layer; config save/load to JSON for reproducibility. Also **TopToMidi** (sonification, documentation-only repo). (Confidence: high — recent releases.)
@@ -202,6 +210,8 @@ Use **GPU Affinity** (one TD process per GPU, supported since 2022.20000) for mu
 
 **Point-cloud / depth-assisted mapping:** Palette **kinectCalibration**, **kinectPointcloud**, **depthProjection** components; OAK-D / Orbbec / ZED / RealSense sensor support expanded in 2023+ builds. (Confidence: high.)
 
+**Community-vetting caveat (per second dossier 2026-06-07):** The TD community has a known issue with patches being copied and resold on Patreon without crediting the original authors. **Prefer original authors' GitHub repos or Derivative community posts as primary sources, and check last-commit dates before recommending a component.** Patreon-only mirrors or undated repackagings are weak — never lead with them, and if a user asks about a Patreon-distributed component, surface the original source if known.
+
 ---
 
 ## 5. Integration & advanced topics
@@ -214,6 +224,8 @@ Use **GPU Affinity** (one TD process per GPU, supported since 2022.20000) for mu
 ### 5.2 When to hand off to Resolume / MadMapper / Millumin
 - **Stay in TouchDesigner** when you need generative/interactive/3D-model-based mapping, custom logic, sensor integration, or full pipeline control.
 - **Hand off to MadMapper** for fast, artist-friendly surface mapping/masking and its mature warping UI; **Resolume Arena** for VJ/clip-based shows with built-in **Advanced Output** warp/blend (it can treat Syphon/Spout/NDI as a virtual screen and warp before sending); **Millumin** for timeline-driven theatrical/installation playback. Common pattern: TD as the generative/content engine, the external app as the mapper/playback surface. (Confidence: medium-high — synthesis of Resolume docs + community practice.)
+- **Resolume gotchas — per second dossier 2026-06-07 (verify against current Resolume product pages at project-spec time):** Resolume relies on the **DXV codec** for clip playback — content must be encoded DXV ahead of time, a real workflow constraint vs systems that play arbitrary codecs natively. Resolume also reportedly carries a **yearly upgrade cost** (verify pricing model and codec requirements on resolume.com before committing a project; dossier-sourced operational specifics drift).
+- **Free / open-source mappers (reference only, per second dossier 2026-06-07):** **MapMap**, **VPT**, and **Splash** (github.com/paperManu/splash) exist as open-source projection-mapping software. Less mature than the commercial trio (MadMapper / Resolume / Millumin) but viable for prototyping, low-budget, or experimental contexts. Verify current activity and platform support before depending on any in production.
 
 ### 5.3 Performance: resolution, GPU, multi-output cards
 - **Pixel-shading bottleneck:** "There is a 1:1 ratio between a TOP's resolution and its GPU workload." Halving resolution halves GPU cost. Diagnose by lowering generator-TOP resolutions and watching cook times. (Confidence: high — nVoid.)
@@ -229,6 +241,33 @@ Use **GPU Affinity** (one TD process per GPU, supported since 2022.20000) for mu
 - **Stoner** stores warp data + displacement map in a user-specified Base COMP ("Project" parameter); bake it, then remove the Stoner UI and drive a Remap TOP from the stored map. (Confidence: high.)
 - **VIOSO / Scalable Display** read external calibration files (from their camera-based calibrators) via their TD integrations — calibration lives in those files, reloadable per show. (Confidence: high.)
 - **External .tox + git:** Matthew Ragan's `touchdesigner-save-external` and Function Store's JSON config save/load enable modular, diffable, reproducible projects (binary .toe files don't diff well). Externalize mapping COMPs and calibration tables. (Confidence: high.)
+
+---
+
+## 6. Field discipline (on-gig notes)
+
+These are production-floor practices, not API documentation — useful for the agent to surface when the user is preparing for an actual install rather than building in isolation. (All items per second dossier 2026-06-07 unless flagged otherwise.)
+
+### Test patterns as ground truth
+
+Before any mapping or alignment session, output **test patterns** through the full pipeline and project them. Use:
+
+- **Grid** (with and without a color ramp) — exposes warp/keystone misalignment, color shifts, dead pixels
+- **Frame counter** — catches frame drops, sync slips, codec stalls
+- **Directional sweeps** — reveal scaling artifacts, banding, edge-crop issues
+- **High-bit-depth noise** — surfaces pipeline bottlenecks that quantize gradients or chop bits
+
+Brand the test patterns with the studio logo — doubles as advertising during setup downtime. (Confidence: high field practice.)
+
+### Spout/Syphon canvas-parallelism (team-mapping pattern)
+
+For team installations where multiple operators need to map different zones simultaneously: **split the master canvas via Spout/Syphon sub-zones** so each team member maps their region without colliding on the same TD project file. The master TD instance composites the zones back into the projected output. Eliminates merge conflicts when more than one person iterates mapping in parallel under time pressure. (Confidence: medium — team-pattern recommendation, not vendor-documented.)
+
+### Calibration data is versioned content
+
+CamSchnappr Table DATs inside the Camera COMP, Stoner displacement maps, and VIOSO / Scalable Display calibration files are all **show-critical assets** that survive only if explicitly version-controlled. Treat them like media: include in git, back up before any structural project change, label by venue + date. Restoring "the calibration from the May install" is impossible if it lived only inside a `.toe` that has since been overwritten.
+
+(Consolidates the § 5.4 saving/loading practice with second dossier's field-discipline framing.)
 
 ---
 
