@@ -261,3 +261,40 @@ Default Render TOP sorts opaque geometry by depth correctly but can produce visu
 **When NOT to enable:** scenes with only one transparent layer (single glass pane, particles against opaque background). Depth peel adds render passes — leaving it off when not needed saves frame budget.
 
 **Layer count rule of thumb:** start at 2–4 layers; increase only if you still see the artifact. Each layer costs roughly one extra render pass.
+
+---
+
+## TD stability gotchas captured from real work
+
+### Topology change + large cook = TD hangs — bypass during refactor
+
+**Source:** Repeated POP-chain refactors in a 500K+ point pipeline, 2026-05 to 2026-06 | **Confidence:** HIGH (TD hung 3+ times before pattern was understood; pattern eliminated subsequent hangs)
+
+TD hangs (UI frozen, MCP timeouts on trivial probes) when **topology changes** (op creation, deletion, rewiring, or sequence-block expansion) happen simultaneously with **large-input cooks** (high point counts, deep render chains, big PLY loads). The combination forces TD to recompute the entire downstream graph in one transaction while also rebuilding the network — no checkpoint, no rollback.
+
+The hang is silent: no error, no crash, TD process is alive but unresponsive. Recovery requires `restart_td` (or kill + launch). Any unsaved work is lost.
+
+**Triggers in practice:**
+
+- Creating a `deletePOP` (or any culling op) downstream of a high-density POP chain — the op starts cooking the full input the moment it appears, before you can finish configuring it.
+- Rewiring a `mergePOP` while both inputs are producing thousands of points.
+- Expanding `attributePOP.par.attr.sequence.numBlocks` while the op has live input.
+- Calling `import_network(clear_first=True)` on a COMP whose downstream consumers are actively rendering.
+
+**Defensive pattern — bypass-first for new ops:**
+
+```python
+new_op = parent.create(deletePOP, 'cull1')
+new_op.par.bypass = True               # 1. bypass FIRST (no cook)
+new_op.par.delcondition = '...'        # 2. configure (still no cook)
+new_op.par.delgroup = '...'
+connect_ops(upstream, new_op)          # 3. wire (still bypassed)
+connect_ops(new_op, downstream)
+new_op.par.bypass = False              # 4. unbypass LAST — single cook of configured op
+```
+
+**Density-reduction pattern (when bypass isn't applicable):**
+
+Before a refactor that touches multiple ops simultaneously, temporarily reduce the upstream point count — `sprinklePOP.par.density`, `fileinPOP.par.thinstep`, etc — to a few thousand points. Refactor at low density, verify behavior, restore density last.
+
+**MCP-side companion rule:** when MCP calls timeout, the TD-side operation may still execute on main thread (per Envoy 30s cap). Always verify final state via filesystem (e.g. `.toe` mtime for save) rather than trusting MCP response success or failure.
