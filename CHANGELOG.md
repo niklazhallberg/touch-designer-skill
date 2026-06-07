@@ -19,6 +19,48 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 6/6]
+
+- **Decision rule: `execute_python` vs many MCP calls (or `batch_operations`)**: Prefer one `execute_python` for builds with loops, conditionals, or computed positions; prefer many MCP calls (or `batch_operations`) when each step needs independent error visibility. Plus a heavy-network override: ≥10 ops at once on a heavy parent → many MCP calls with bypass-first, even when the build is loop-shaped, to avoid the topology-hang failure documented in `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor". Own-empiry: silent hang reproduced under stacked `execute_python` builds in production sessions; per-call MCP variant with bypass-first did not exhibit the hang.
+- Value for user: gives the agent a written-down decision recipe for the single most common build-time judgment call, instead of re-deriving it each session. The override rule prevents the loop-form reflex from triggering the topology-hang failure mode.
+- File: `skills/mcp-tools-reference/SKILL.md` § Choosing `execute_python` vs many MCP calls (or `batch_operations`)
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 5/6]
+
+- **Prefer `run(myFunction, arg, delayFrames=N)` over `run("myFunction(arg)", ...)`**: Passing a callable avoids string parsing, surfaces `NameError` / `AttributeError` at call time instead of after the delay fires, and keeps stack traces readable (traceback points at the function body, not a runtime-compiled string). Reach for the string form only when the callable doesn't exist in the current scope at scheduling time.
+- Value for user: cuts debug-time when a delayed call goes wrong — the error appears synchronously at scheduling, with a useful stack trace, instead of N frames later with an obscure pointer into eval'd source.
+- File: `skills/td-api-reference/SKILL.md` § `run()` — Delayed Code Execution (extended)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 4/6]
+
+- **Offload blocking Python with subprocess — but the lever only applies to user-written code**: Blocking Python in a callback or extension freezes TD's cook. For HTTP, file I/O, or model inference: spawn a `subprocess` and read results via OSC/DAT/file rather than blocking the main thread. **Clarifying note** (in the entry as a footnote, NOT in the rule body): TD's own heavy main-thread operations like `project.save()` on a large project or large topology changes cause the same family of freeze (main-thread block) but cannot be offloaded with subprocess — that lever applies only to code we control. Cross-linked to the related-but-distinct `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" where the block originates inside TD itself.
+- Value for user: makes the offload-vs-bypass decision explicit — agent reaches for subprocess only when the blocking call is in user code, and for bypass / allowCooking when TD itself is the blocker. Prevents the wrong-tool reflex.
+- File: `references/td-architecture.md` § Offload blocking Python with subprocess (new subsection in Performance optimization)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 3/6]
+
+- **`comp.allowCooking = False` gates an entire subnetwork that's irrelevant this frame**: Cheaper than bypassing individual ops on a heavy COMP because nothing inside cooks at all (vs. bypass which still resolves the cook graph). Re-enable when relevant again. Cross-linked from the existing § "Topology change + large cook = TD hangs — bypass during refactor" as the Python-side lever for the same pain family — wider hammer when the offending subnetwork is the whole COMP, not a single op in a chain.
+- Value for user: gives the agent a coarser-grained lever for cook-budget pressure (whole inactive scene-COMPs, off-screen UI panels, staging subgraphs) without duplicating the topology-hang entry that already documents the symptom.
+- File: `references/td-gotchas.md` § `comp.allowCooking = False` — gate an entire subnetwork that's irrelevant this frame
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 2/6]
+
+- **`op.cook(force=True)` re-cooks even when not dirty — use sparingly**: Force-cook bypasses TD's lazy cook model and stacks into the per-frame budget. Reach for it as an override (a downstream consumer is reading stale data because dirty-propagation didn't fire), not as a workflow. Default first: fix the missing dirty propagation.
+- Value for user: avoids treating force-cook as the obvious lever when a stale-data symptom appears — points the agent at the underlying dirty-propagation bug first.
+- File: `skills/td-api-reference/SKILL.md` § Forcing a cook
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 1/6]
+
+- **`passive(op('x'))` reads Info-channel attributes without forcing a cook**: When an expression on a frequently-cooked parameter needs to peek at `width`, `numSamples`, `numChans`, or similar Info attributes of another op, wrapping the lookup in `passive()` avoids inheriting that op's cook dependency. Without it, the expression's owner gets dragged into a cascade re-cook every time the read target dirties.
+- Value for user: prevents accidental cook cascades in expressions that just want to know "how big is X" — keeps the expression's owner out of X's dependency chain.
+- File: `skills/td-api-reference/SKILL.md` § Reading without cooking
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — second projection-mapping dossier enrichment]
 
 - **Projection-mapping reference enriched with complementary content from second dossier**: Surgical additions to `references/projection-mapping.md` of items NOT covered by the first dossier import. External-only source (second user-provided projection-mapping dossier 2026-06-07), MEDIUM confidence + re-check per protocol v0.3. Specifically:

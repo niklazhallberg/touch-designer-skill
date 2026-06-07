@@ -229,6 +229,34 @@ arr = op('noise1').numpyArray()  # [height, width, channels] — NOT [width, hei
 arr_td = np.flipud(arr)
 ```
 
+## Reading without cooking
+
+`passive(op('x'))` reads Info-channel attributes (`width`, `numSamples`, `numChans`, etc.) without forcing a cook — use in expressions to avoid cascade re-cooks.
+
+```python
+# In a parameter expression: read width WITHOUT making the caller depend on cook
+passive(op('moviein1')).width
+
+# Without passive(): touching .width can trigger an evaluation cascade on op('moviein1')
+```
+
+When to reach for this: an expression on a frequently-cooked parameter needs to peek at an Info attribute of another op (size, channel count, sample rate) and you don't want the expression's owner to inherit that op's cook dependency.
+
+**Source:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+## Forcing a cook
+
+`op.cook(force=True)` re-cooks even when not dirty — use sparingly; every force-cook bypasses TD's lazy model and stacks into the frame budget.
+
+```python
+op('table1').cook(force=True)             # Re-cooks even if not dirty
+op('base1').cook(force=True, recurse=True) # Re-cooks the whole subtree
+```
+
+When to reach for this: a downstream consumer is reading stale data because the source's dirty-propagation didn't fire (rare — usually an upstream bug). Default first: fix the missing dirty propagation. Force-cook is the override, not the workflow.
+
+**Source:** [docs.derivative.ca/OP_Class](https://docs.derivative.ca/OP_Class) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## POPs — GPU-Accelerated Point Operators
 
 POPs process 3D geometry on the GPU (analogous to SOPs but GPU-accelerated).
@@ -254,6 +282,10 @@ run(myFunction, arg1, arg2, delayFrames=5)
 run("me.cook(force=True)", fromOP=op('/project1/base1'), delayFrames=1)
 ```
 - Docs: https://docs.derivative.ca/Td_Module#Methods
+
+**Prefer callable form over string form.** Pass `run(myFunction, arg, delayFrames=N)` rather than `run("myFunction(arg)", delayFrames=N)` — the callable form avoids string parsing, surfaces `NameError` / `AttributeError` at call time instead of after the delay fires, and keeps stack traces readable (the traceback points at the function body, not the runtime-compiled string). Use the string form only when the callable doesn't exist in the current scope at scheduling time.
+
+**Source:** [docs.derivative.ca/Td_Module](https://docs.derivative.ca/Td_Module) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
 
 ## Thread Manager
 

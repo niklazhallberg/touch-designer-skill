@@ -169,3 +169,26 @@ These run locally on the STDIO bridge — they work even when TD is not running.
   {"tool": "connect_ops", "params": {"source_path": "/project1/comp1", "dest_path": "/project1/level1"}},
   {"tool": "connect_ops", "params": {"source_path": "/project1/level1", "dest_path": "/project1/null1"}}
 ]}
+```
+
+## Choosing `execute_python` vs many MCP calls (or `batch_operations`)
+
+Prefer **one** `execute_python` for builds with loops, conditionals, or computed positions; prefer **many MCP calls** (or `batch_operations`) when each step needs independent error visibility.
+
+The two ends of the trade-off:
+
+| Pick | When | Why |
+|---|---|---|
+| **One `execute_python`** | The build has loops, conditionals, computed positions, or shared state across steps | One round-trip; the Python runs server-side and can branch; failure surfaces as one error but the network may be left in a partial state |
+| **Many MCP calls** (or `batch_operations`) | Each step is independent and you need to see exactly which one failed (and stop at that step) | Per-step error responses; easier to resume mid-build after a failure; higher latency from N round-trips (mitigated by `batch_operations` for same-tool runs) |
+
+**Why this matters in practice**: large `execute_python` blocks that build a lot of network at once interact badly with TD's cook model when the build also triggers topology change + large cooks. The single block holds the main thread through the whole build; if anything inside cascades into a heavy cook, you get the silent-hang failure mode documented in `references/td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor". Spreading the same build across N MCP calls (or `batch_operations`) gives TD breathing room between operations — and gives the agent a checkpoint after each one.
+
+**Decision recipe:**
+
+1. Does the build need a `for` loop, `if` branch, or computed-from-runtime-state positions/values? → `execute_python`. Anything else loses too much to N round-trips.
+2. Does the build touch ≥10 ops at once on a heavy parent network? → many MCP calls, with `bypass=True` on each new op (per the topology-hang rule), even if step 1 said `execute_python`. The agent visibility wins over the latency cost.
+3. Same tool repeated 3+ times with no branching between? → `batch_operations` (best of both worlds: one round-trip, per-step error position).
+4. Mixed: write the loop-heavy part as one `execute_python`; do the visible-error-needed steps (heavy creates, parameter sets that must succeed) as separate MCP calls afterward.
+
+**Source:** RADON_TREE topology+cook-hang sessions documented in `references/td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" | **Confidence:** HIGH (own empiry — observed end-to-end across multiple sessions: the silent hang reproduced under stacked `execute_python` builds, the per-call MCP variant did not exhibit the hang when paired with bypass-first)

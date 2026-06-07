@@ -298,3 +298,23 @@ new_op.par.bypass = False              # 4. unbypass LAST — single cook of con
 Before a refactor that touches multiple ops simultaneously, temporarily reduce the upstream point count — `sprinklePOP.par.density`, `fileinPOP.par.thinstep`, etc — to a few thousand points. Refactor at low density, verify behavior, restore density last.
 
 **MCP-side companion rule:** when MCP calls timeout, the TD-side operation may still execute on main thread (per Envoy 30s cap). Always verify final state via filesystem (e.g. `.toe` mtime for save) rather than trusting MCP response success or failure.
+
+### `comp.allowCooking = False` — gate an entire subnetwork that's irrelevant this frame
+
+**Source:** [docs.derivative.ca/OP_Class](https://docs.derivative.ca/OP_Class) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+`comp.allowCooking = False` gates an entire subnetwork that's irrelevant this frame; re-enable when needed — cheaper than `bypass` on heavy COMPs because nothing inside the COMP cooks at all (vs. bypass which still resolves the cook graph and passes input through).
+
+Cross-link: this is the Python-side lever for the pain documented above in § "Topology change + large cook = TD hangs — bypass during refactor". When the offending subnetwork is the whole COMP rather than a single op in a chain, `allowCooking = False` on the COMP is the wider hammer — useful for whole inactive scenes, off-screen UI panels, or staging subgraphs that should idle until needed.
+
+```python
+op('heavy_scene').allowCooking = False  # whole subnetwork stops cooking
+# ... do work that no longer triggers heavy_scene cooks ...
+op('heavy_scene').allowCooking = True   # re-enable when relevant again
+```
+
+**Check first when:**
+
+- A whole COMP-worth of network is off-screen / inactive / staging and still eating cook budget
+- Bypassing single ops inside the COMP isn't enough — the heavy work is internal cook-graph resolution
+- Multi-scene apps where only one scene-COMP needs to cook at a time
