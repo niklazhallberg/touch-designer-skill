@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 3/6]
+
+- **`comp.allowCooking = False` gates an entire subnetwork that's irrelevant this frame**: Cheaper than bypassing individual ops on a heavy COMP because nothing inside cooks at all (vs. bypass which still resolves the cook graph). Re-enable when relevant again. Cross-linked from the existing § "Topology change + large cook = TD hangs — bypass during refactor" as the Python-side lever for the same pain family — wider hammer when the offending subnetwork is the whole COMP, not a single op in a chain.
+- Value for user: gives the agent a coarser-grained lever for cook-budget pressure (whole inactive scene-COMPs, off-screen UI panels, staging subgraphs) without duplicating the topology-hang entry that already documents the symptom.
+- File: `references/td-gotchas.md` § `comp.allowCooking = False` — gate an entire subnetwork that's irrelevant this frame
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 2/6]
 
 - **`op.cook(force=True)` re-cooks even when not dirty — use sparingly**: Force-cook bypasses TD's lazy cook model and stacks into the per-frame budget. Reach for it as an override (a downstream consumer is reading stale data because dirty-propagation didn't fire), not as a workflow. Default first: fix the missing dirty propagation.
