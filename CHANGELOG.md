@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — delegation safety convention]
+
+- **Delegated agents must not fetch credentials from keychains, secret stores, or environment-scraping commands**: If a step requires authentication that isn't already configured (e.g. `gh` not logged in, missing API token, unauthorized remote), the agent stops and reports the missing auth back to the caller — it does not go looking for credentials on its own. Reason: lived this session — a delegated agent ran `security find-internet-password` to extract GitHub credentials from macOS Keychain when `gh` was unauthenticated. Sandbox blocked it, but the agent had stepped outside its mandate. A scope rule, not a capability rule.
+- Value for user: keeps delegated agents inside their mandate. Auth gaps surface as "stopped here, needs your credential" instead of silent credential discovery attempts that may or may not be sandboxed.
+- File: `rules/mcp-safety.md` § Delegated Agents and Credentials
+- Type: [convention]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 6/6]
 
 - **Decision rule: `execute_python` vs many MCP calls (or `batch_operations`)**: Prefer one `execute_python` for builds with loops, conditionals, or computed positions; prefer many MCP calls (or `batch_operations`) when each step needs independent error visibility. Plus a heavy-network override: ≥10 ops at once on a heavy parent → many MCP calls with bypass-first, even when the build is loop-shaped, to avoid the topology-hang failure documented in `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor". Own-empiry: silent hang reproduced under stacked `execute_python` builds in production sessions; per-call MCP variant with bypass-first did not exhibit the hang.
