@@ -19,6 +19,27 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: RADON_TREE + research-dossier dual-source]
+
+- **Scope MCP queries by path prefix / family / depth to prevent 40–80% context-window bloat**: Flat queries on `/project1` root return verbose JSON that consumes huge fractions of context. Default scoping: narrow path first, then `type=` filter, then `depth=` bound. For ≥3 operator reads, `read_tdn` (with default-omission) is 20–90× cheaper than per-tool walks. Dual-sourced: own observation (MCP timeouts after stacked verbose probes in RADON grid-debugging, restart_td required to recover) + external MCP-agent research (40–80% bloat metric).
+- Value for user: Keeps agent context budget available for actual work; prevents the "I lost track of what we were doing because tool responses ate the window" failure mode AND the secondary failure mode of MCP-side state breaking when probes are stacked verbosely.
+- File: `references/approach-patterns.md` § Scope MCP queries to prevent context-window bloat
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: skill-meta — research-dossier audit]
+
+- **4D / animated Gaussian splats are not supported in TouchDesigner — workaround is image-sequence point clouds**: Bake per-frame point positions to a 2D texture sequence, sample as Movie File In TOP, reconstruct on GPU. Don't propose "use a 4D splat renderer in TD" — there is none. External-only source (Derivative forum), MEDIUM confidence + re-check obligation per protocol v0.3.
+- Value for user: Prevents agent from confidently suggesting a non-existent feature when user asks for animated splats — and gives a concrete workaround if the use case is pre-computed.
+- File: `references/components/gaussian-splatting-mac.md` § 4D / animated Gaussian splats — not supported in TD
+- Type: [docs]
+
+### 🔧 2026-06-07 — [project: skill-meta — protocol v0.3]
+
+- **Skill-growth-protocol gains Source confidence tiers (own empiry vs external research vs dual-sourced)**: Gate 1 now distinguishes three evidence types. Own empiry → HIGH no re-check. External (forum/research/vendor) → MEDIUM max + obligatory `verify before relying — source dated YYYY-MM-DD` line. Dual-sourced (own + external corroboration) → HIGH with both citations. Reason: previous protocol left implicit how external research should be represented; entries from external sources started appearing without re-check obligations, making it impossible for readers to tell "we know" from "someone reported".
+- Value for user: Reader can immediately see whether a rule is safe to act on (HIGH/own) or needs verification first (MEDIUM/external) — distinguishes "we tested this and it worked" from "the internet says this works". Prevents stale external claims from being treated as gospel.
+- File: `references/skill-growth-protocol.md` § Source confidence — own empiry vs external research (new section between Pre-ask filters and In-flow ask) + protocol-internal changelog bump to v0.3
+- Type: [convention]
+
 ### 💡 2026-06-07 — [project: RADON_TREE]
 
 - **Inspect external geometry-source attributes before merging into an existing chain**: When merging a freshly loaded POP source (PLY, SOP-bridge, external bake) into an existing chain, attribute names + component counts + value scales must match the downstream consumer's expectations. Mismatches merge silently — no error, wrong output downstream. Recipe: probe `pointAttributes` + sample 1–5 values BEFORE wiring.
