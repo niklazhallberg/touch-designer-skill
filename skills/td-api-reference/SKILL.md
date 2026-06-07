@@ -229,6 +229,21 @@ arr = op('noise1').numpyArray()  # [height, width, channels] — NOT [width, hei
 arr_td = np.flipud(arr)
 ```
 
+## Reading without cooking
+
+`passive(op('x'))` reads Info-channel attributes (`width`, `numSamples`, `numChans`, etc.) without forcing a cook — use in expressions to avoid cascade re-cooks.
+
+```python
+# In a parameter expression: read width WITHOUT making the caller depend on cook
+passive(op('moviein1')).width
+
+# Without passive(): touching .width can trigger an evaluation cascade on op('moviein1')
+```
+
+When to reach for this: an expression on a frequently-cooked parameter needs to peek at an Info attribute of another op (size, channel count, sample rate) and you don't want the expression's owner to inherit that op's cook dependency.
+
+**Source:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## POPs — GPU-Accelerated Point Operators
 
 POPs process 3D geometry on the GPU (analogous to SOPs but GPU-accelerated).

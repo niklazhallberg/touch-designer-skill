@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 1/6]
+
+- **`passive(op('x'))` reads Info-channel attributes without forcing a cook**: When an expression on a frequently-cooked parameter needs to peek at `width`, `numSamples`, `numChans`, or similar Info attributes of another op, wrapping the lookup in `passive()` avoids inheriting that op's cook dependency. Without it, the expression's owner gets dragged into a cascade re-cook every time the read target dirties.
+- Value for user: prevents accidental cook cascades in expressions that just want to know "how big is X" — keeps the expression's owner out of X's dependency chain.
+- File: `skills/td-api-reference/SKILL.md` § Reading without cooking
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — second projection-mapping dossier enrichment]
 
 - **Projection-mapping reference enriched with complementary content from second dossier**: Surgical additions to `references/projection-mapping.md` of items NOT covered by the first dossier import. External-only source (second user-provided projection-mapping dossier 2026-06-07), MEDIUM confidence + re-check per protocol v0.3. Specifically:
