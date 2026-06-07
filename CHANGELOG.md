@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — wiki audit]
+
+- **Check OP Snippets and Palette before building TD patterns from scratch**: TD ships two discovery surfaces — OP Snippets (operator-level examples, `Help menu → Operator Snippets`) and Palette Browser (reusable COMPs, `Dialogs → Palette Browser`). Both should be checked before generating from-scratch implementations of recognizable patterns. The agent should explicitly say "I'll check OP Snippets / Palette first" before proceeding to build. External-only source (Derivative wiki), MEDIUM confidence + re-check per protocol v0.3.
+- Value for user: Prevents the agent from confidently building from scratch when a working starting point already ships with TD — saves time, produces more idiomatic results, and aligns with what an experienced TD user would do reflexively.
+- File: `references/approach-patterns.md` § Check OP Snippets and Palette before building from scratch
+- Type: [discovery]
+
 ### 🌱 2026-06-07 — [project: skill-meta — repo structure]
 
 - **Add ROADMAP.md for forward-looking deferred work**: New top-level file tracking items deferred from preemptive import per the v0.3 protocol's "external source = MEDIUM" philosophy. Each entry has an explicit trigger condition (what real-world event should bring it back into scope). First item: Perform Mode / kiosk deployment gotchas, deferred until RADON_TREE (or another project) ships — so we can capture HIGH-confidence empirical gotchas instead of MEDIUM wiki distillation.
