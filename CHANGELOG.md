@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 4/6]
+
+- **Offload blocking Python with subprocess — but the lever only applies to user-written code**: Blocking Python in a callback or extension freezes TD's cook. For HTTP, file I/O, or model inference: spawn a `subprocess` and read results via OSC/DAT/file rather than blocking the main thread. **Clarifying note** (in the entry as a footnote, NOT in the rule body): TD's own heavy main-thread operations like `project.save()` on a large project or large topology changes cause the same family of freeze (main-thread block) but cannot be offloaded with subprocess — that lever applies only to code we control. Cross-linked to the related-but-distinct `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" where the block originates inside TD itself.
+- Value for user: makes the offload-vs-bypass decision explicit — agent reaches for subprocess only when the blocking call is in user code, and for bypass / allowCooking when TD itself is the blocker. Prevents the wrong-tool reflex.
+- File: `references/td-architecture.md` § Offload blocking Python with subprocess (new subsection in Performance optimization)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 3/6]
 
 - **`comp.allowCooking = False` gates an entire subnetwork that's irrelevant this frame**: Cheaper than bypassing individual ops on a heavy COMP because nothing inside cooks at all (vs. bypass which still resolves the cook graph). Re-enable when relevant again. Cross-linked from the existing § "Topology change + large cook = TD hangs — bypass during refactor" as the Python-side lever for the same pain family — wider hammer when the offending subnetwork is the whole COMP, not a single op in a chain.

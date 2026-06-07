@@ -115,3 +115,29 @@ When any of these resolves in real work and survives the growth-protocol gates, 
 Two different projects with the same framerate problem can have completely different bottlenecks: one might be Python-bound from a per-frame DAT script, the other GPU-bound from a misconfigured Render TOP with unnecessary transparency. The fixed-order rule would have you optimize resolution first in BOTH cases — wasted effort in the Python-bound project. Performance Monitor + the 64×64 GPU test resolve it in seconds.
 
 **Rule:** profile first, optimize the actual bottleneck. Don't apply a generic order without measurement.
+
+### Offload blocking Python with subprocess
+
+**Source:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) (run/subprocess context) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki + community-blog convention — verify in your TD version)
+
+Blocking Python in a callback or extension freezes TD's cook — spawn a `subprocess` and read results via OSC/DAT/file rather than blocking the main thread.
+
+Typical offenders: synchronous HTTP requests, large file reads/writes, model inference (`transformers`, `torch`, `onnxruntime`), database queries, anything with a network round-trip. If the Python call doesn't return in <1 frame budget, it blocks the cook — visible as instant freeze + dropped frames, sometimes a TD "not responding" dialog.
+
+The offload pattern:
+
+1. Launch a separate Python process via `subprocess.Popen` (or a long-running worker started at project init).
+2. Pass inputs through stdin / a file / a JSON payload on disk.
+3. The worker writes results to a known channel: an OSC message back to an `oscinDAT`, a file polled by a `monitorsDAT`, or a row appended to a CSV that an `infoDAT` watches.
+4. The TD side reads results when ready — no blocking call on the main thread.
+
+This pattern applies to **user-written Python**. TD's own heavy main-thread operations (e.g. `project.save()` on a large project, large topology changes) cause the same family of freeze (main-thread block) but cannot be offloaded with `subprocess` — that lever applies only to code we control. Cross-link: `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" documents the related-but-distinct case where the block originates inside TD itself; the fix there is `bypass` / `allowCooking`, not subprocess.
+
+**See also:** the Thread Manager pattern in `skills/td-api-reference/SKILL.md` § "Thread Manager" — TD's in-process worker pool. Subprocess is the heavier-isolation alternative when the workload would otherwise depend on packages that conflict with TD's bundled Python, or when crash-isolation matters (a `subprocess` crash doesn't take TD down).
+
+**Check first when:**
+
+- A callback or extension method needs HTTP / disk-heavy / inference work
+- Symptoms include sudden FPS drops timed with specific user actions (button click, file open)
+- The work depends on packages that don't ship with TD's Python or conflict with it
+- You want crash isolation (worker crash doesn't kill TD)
