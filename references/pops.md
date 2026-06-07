@@ -789,3 +789,123 @@ noise_op.par.amp0.expr   = "parent.X.par.WaveAmp        if parent.X.par.Mode == 
 **Acceptance test:** In topology-mode with all wave/animation rattar at zero, the rendered output must be (a) perfectly static across frames AND (b) geometrically clean (lines straight, faces closed). If either fails, a static noise source is still active.
 
 **User-side diagnostic heuristic worth listening for:** if the operator observes "motion stopped but the output is still broken" after branching the obvious source, a static per-point noise is still active. Search for downstream noise ops with `t4d = 0` and short `period`.
+
+### `mathcombinePOP` binary ops are component-wise on multi-component attributes
+
+**Source:** Y-ceiling clamp in shared deformation chain, 2026-06-04 (stress-tested with extreme parameter values to confirm) | **Confidence:** HIGH
+
+When `mathcombinePOP` applies a binary op (`min`, `max`, `add`, `mult`, etc.) between two float3 attributes (typically P vs another vector), the operation is performed **component-wise** — no per-component setup needed.
+
+```python
+# Clamp only P.y to a ceiling without touching X or Z — sentinels on X and Z:
+y_ceiling.par.vec0value0 = 1e6        # X — effectively no clamp
+y_ceiling.par.vec0value1 = -0.915     # Y — actual ceiling
+y_ceiling.par.vec0value2 = 1e6        # Z — effectively no clamp
+y_ceiling.par.comb0oper = 'min'
+y_ceiling.par.comb0scopea = 'P'
+y_ceiling.par.comb0scopeb = 'y_ceiling'
+y_ceiling.par.comb0result = 'P'
+# Result: P.x = min(P.x, 1e6) = P.x, P.y = min(P.y, -0.915), P.z = min(P.z, 1e6) = P.z
+```
+
+Component-wise behavior was uncertain before empirical confirmation — alternatives considered were "3 separate min-combs, one per component" or "use `clamp` instead". This is the simpler path. Verified via stress test: max-amplitude noise + max-amplitude masters all turned on — `max(P.y)` remained ≤ -0.915 in all cases.
+
+**Verify pattern when designing a single-component clamp:** stress-test before relying on it — push upstream values past the ceiling and check `numpyArray('P').max(axis=0)` after the clamp. Don't assume.
+
+### `noisePOP` `combineop` controls whether output replaces or adds to an attribute
+
+**Source:** Per-point random vector generation for sprinkle decay, 2026-06-04 | **Confidence:** HIGH
+
+`noisePOP` writes its output to the attribute named in `noiseoutputattrscope`. The `combineop` parameter controls how the noise interacts with any existing value:
+
+| `combineop` | Behavior | Use when |
+|---|---|---|
+| `'none'` | **Creates** the named attribute and writes noise into it (overwrites if exists) | Fresh attribute carrying noise — e.g. per-point random vector for downstream culling/jitter |
+| `'add'` (default) | **Adds** noise to existing attribute value (silent zero/garbage if attribute doesn't exist upstream) | Perturb an existing position/value — e.g. add jitter to P |
+
+**Common trap:** leaving `combineop='add'` (the default) while writing to a brand-new attribute scope produces empty/garbage output because there's nothing upstream to add to. No visible error — downstream consumers just see zeros or NaN.
+
+**Standard config for creating a per-point random attribute:**
+
+```python
+rand_noise.par.noise = True
+rand_noise.par.combineop = 'none'                # create, don't add
+rand_noise.par.noiseoutputattrscope = 'rndvec'   # name the attribute
+rand_noise.par.period = 0.05                     # short period for per-point variation
+rand_noise.par.amp0 = 1.0
+rand_noise.par.seed = 42
+rand_noise.par.t4d = 0                           # 0 = static seed; >0 = animate over time
+```
+
+**Verify:** after configuring, sample 10–20 points via `op('.../rand_noise').points('rndvec')` and check values are non-zero, varied per-point, and within expected amplitude range.
+
+### A single MAT downstream of a merge applies to ALL merged inputs — branch styling per-point upstream of the merge
+
+**Source:** Shared multi-branch POP pipeline, 2026-06-05 (alpha tuning produced unwanted cross-branch effects) | **Confidence:** HIGH
+
+When two or more POP chains merge upstream of a single `Geometry COMP` consuming one MAT, that MAT's properties (alpha, blending, color tinting, point sprite, depth behavior) apply uniformly to ALL merged inputs. There is no per-branch styling at the MAT layer.
+
+**Symptom:** You want to dim branch A while leaving branch B at full opacity. Adjusting `MAT.par.alpha` dims BOTH because the merge happened before the MAT reads.
+
+**Fix pattern — branch styling via per-point attributes upstream:**
+
+Set per-point `Color` (or any MAT-consumed attribute) on each branch BEFORE the merge. The MAT then reads the per-point attribute, so each branch carries its own styling through the merge.
+
+```python
+# branch A — set per-point color/alpha BEFORE merge
+set_color_A.par.attr0name = 'color'
+set_color_A.par.attr0numcomps = '4'
+set_color_A.par.attr0value0 = 255   # R
+set_color_A.par.attr0value1 = 255   # G
+set_color_A.par.attr0value2 = 255   # B
+set_color_A.par.attr0value3 = 30    # alpha for branch A
+
+# branch B — different alpha
+set_color_B.par.attr0value3 = 77    # alpha for branch B
+
+# downstream merge + single MAT now displays each branch with its own alpha
+```
+
+**When the MAT is `constantMAT`:** ensure `applypointcolor=True` so per-point Color overrides the MAT's uniform color.
+
+**Mode-switch variant:** if the two "branches" are actually the same chain in different modes (via `switchPOP`), branch the attribute-setting expressions on the mode parameter — see also "Mode-switching a shared POP-chain — branch ALL noise/mutator sources" earlier in this section.
+
+### Inspect external geometry-source attributes before merging into an existing chain
+
+**Source:** External baked-PLY merging into a constantMAT-driven pipeline, 2026-05 to 2026-06 | **Confidence:** HIGH
+
+When merging a newly-loaded POP source (`fileinPOP` of a PLY/GLB, freshly generated POPs from a SOP-bridge, output of an external bake) into a chain that's already rendering correctly, the source's attributes must match the existing chain's expectations in three dimensions: **name**, **component count**, and **value scale**.
+
+If any of these mismatch, the merge succeeds silently — no error, no warning — but the rendered output is wrong or invisible. The downstream MAT may receive `Color` when it expects `Cd`, may read a 0–1 float as if it were 0–255 byte (or vice versa), or may sample component 3 of a vec4 when only vec3 was provided.
+
+**Inspection recipe — run BEFORE wiring the merge:**
+
+```python
+src_pop = op('.../newly_loaded_pop')
+
+# 1. Attribute names + classes
+print(src_pop.pointAttributes)        # → {'P', 'Color', 'PointScale', ...}
+print(src_pop.vertexAttributes)
+print(src_pop.primAttributes)
+
+# 2. Sample 1–5 points to see actual values + ranges + component counts
+for name in src_pop.pointAttributes:
+    vals = src_pop.points(name, delayed=False)[:3]
+    print(f"{name}: {vals}")
+```
+
+Compare against the existing chain's expectations — sample the same attribute on the downstream `null`/OUT to see what range and naming the MAT actually consumes.
+
+**Common mismatches to check for:**
+
+- **Color attribute name**: `Color` vs `Cd` vs `color` (case matters in some POP API surfaces).
+- **Color value scale**: 0–1 float vs 0–255 byte — baked PLY conventions vary by baker tool. A PLY with `Color=(0.5, 0.5, 0.5)` and one with `Color=(127, 127, 127)` both look "right" in isolation but mix wrong.
+- **Component count**: `Color` may be vec3 (RGB) or vec4 (RGBA). Synthetic source with vec3 merged with baked vec4 leaves alpha undefined.
+- **PointScale presence**: some PLY bakers include per-point `PointScale`; others omit it. Synthetic points without `PointScale` render at GPU minimum (~1px) when mixed with baked points that scale correctly.
+- **Per-point transforms**: Gaussian-splat PLYs carry rotation/scale-3 attributes; merging plain points into that chain leaves those attributes undefined for the new points.
+
+**Fix pattern when mismatch is found:**
+
+Insert an `attributePOP` (or `attributecreatePOP`) on the new branch BEFORE the merge that synthesizes the missing attributes at matching name/count/scale. For value-scale mismatch (0–1 float to 0–255 byte), use a `mathPOP` to rescale before the merge.
+
+**Verify:** after merging, capture the render and compare against the pre-merge baseline. If the rendered output differs in color, size, or visibility from "what the new points should add", run the inspection recipe on both branches at the merge point and reconcile.

@@ -21,6 +21,41 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-07 — [project: RADON_TREE]
 
+- **Inspect external geometry-source attributes before merging into an existing chain**: When merging a freshly loaded POP source (PLY, SOP-bridge, external bake) into an existing chain, attribute names + component counts + value scales must match the downstream consumer's expectations. Mismatches merge silently — no error, wrong output downstream. Recipe: probe `pointAttributes` + sample 1–5 values BEFORE wiring.
+- Value for user: Avoids "I merged the new source and now the colors are wrong / points are invisible / one branch dominates" debug sessions — gives a pre-merge inspection checklist and concrete mismatch examples (Color vs Cd, 0–1 float vs 0–255 byte, vec3 vs vec4, missing PointScale).
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
+- **Single MAT downstream of a merge applies to all inputs — branch styling per-point upstream**: For per-branch alpha/color/blending in a merged POP chain, set per-point Color BEFORE the merge — the MAT honors per-point values when configured for it (`constantMAT.applypointcolor=True`). Adjusting MAT-level alpha dims ALL merged inputs uniformly.
+- Value for user: Resolves "I changed alpha on one branch and BOTH dimmed" confusion with a clean architecture pattern that doesn't require duplicating MATs.
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
+- **noisePOP combineop='none' creates the output attribute; default 'add' silently fails if attr doesn't exist upstream**: Common trap when generating per-point random vectors — the default `combineop='add'` produces empty/zero output instead of a visible error. The fix is `combineop='none'` to create a fresh attribute.
+- Value for user: Saves debug-hours on "my noise op isn't outputting anything" — names the silent-failure mode and gives the correct config.
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
+- **mathcombinePOP binary ops are component-wise on multi-component attributes**: `min/max/add/mult` between two float3 attributes operates per-component — no separate combs needed. Empirically confirmed via stress test in source incident (max-amplitude inputs → ceiling held on Y, X and Z untouched via 1e6 sentinels).
+- Value for user: Removes guesswork when designing per-component clamps or ops on vector attributes — and shows the stress-test pattern to verify component-wise behavior on other ops before depending on it.
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
+- **Topology change + large cook hangs TD — use bypass-during-refactor**: Creating, deleting, or rewiring ops downstream of high-density POP chains hangs TD silently (UI frozen, MCP timeouts on trivial probes, no crash, unsaved work lost). Defensive pattern: bypass new op first → configure → wire → unbypass last. Density-reduction is the fallback when bypass isn't applicable.
+- Value for user: Eliminates a class of "TD froze and I lost work" incidents — gives a concrete recipe for safe refactoring of large pipelines.
+- File: `references/td-gotchas.md` § TD stability gotchas captured from real work
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
 - **Shared POP-chain with mode-switch — branch ALL noise sources, not just the obvious one**: When a chain serves multiple visual modes (particles/grid) via switchPOP, all per-point noise/jitter ops downstream must be mode-branched, not just the obviously-named one. Symptom of partial branching: motion stops but output is still statically broken — diagnostic fingerprint of a second source (typically per-point random with `t4d=0`) still active. Long-wavelength noise (period >> cell size) is safe both modes; empirically verified in source incident at period=0.05m (broke 0.04m cells) vs period=8m (preserved 50×50 grid).
 - Value for user: Saves hours when "I branched the noise but my grid is still torn apart" — gives a direct diagnostic ("motion stopped but still broken = static source still active") and a complete fix recipe with empirically-verified safe vs unsafe noise periods.
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
