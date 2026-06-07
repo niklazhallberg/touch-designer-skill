@@ -96,6 +96,38 @@ once capability is confirmed.
 
 ---
 
+## Scope MCP queries to prevent context-window bloat
+
+**Source:** RADON_TREE shared particles/grid pipeline, 2026-06-07 (own observation — MCP timeouts after multiple verbose probes during a grid-debugging session; restart_td required to recover) + [Reddit r/AI_Agents discussion on tool-response bloat](https://www.reddit.com/r/AI_Agents/comments/1rlucg7/) + general MCP-agent research, late 2025 (corroborating reference) | **Confidence:** HIGH (dual-sourced)
+
+MCP tool responses can consume **40–80% of an agent's context window** when used without query scoping. For TD specifically, the failure mode is calling `query_network` or `find_children` on a root path like `/project1` flat — the JSON response from a large network can run thousands of lines per call, and stacking a few of those quickly fills context.
+
+**Default scoping rules:**
+
+- **Path-first:** Query the specific subnet you're working in (`/project1/MyScene/RenderChain`) rather than the project root. If you don't know where the work lives, do ONE narrow query to discover, then scope subsequent calls.
+- **Family-filtered:** When listing operators, pass `type=` (e.g., `type='renderTOP'`) so the response includes only the family that matters.
+- **Depth-bounded:** For broad audits, pass `depth=1` or `depth=2` first to see structure before recursing.
+- **Prefer `read_tdn` for ≥3 operators:** A single TDN read returns the whole subgraph with default-omission and type_defaults — typically 20–90× fewer tokens than walking via `get_op` + `query_network`. See `mcp-tools-reference/SKILL.md` § `read_tdn` for when this beats per-tool MCP walks.
+
+**What NOT to do:**
+
+```python
+# WRONG — flat root query, returns thousands of operators
+query_network('/project1')
+
+# RIGHT — scoped to the area of work
+query_network('/project1/GaussianSplatting/TreePoints', recursive=False)
+find_children('/project1/GaussianSplatting', type='renderTOP')
+```
+
+**Acceptance signal:** if a single MCP response is so long that it pushes earlier context out, the query was too broad. Re-issue with path/family/depth scoping. After scoping, the response should fit in a few hundred lines.
+
+**Failure-mode also observed in own production work:** Sequential verbose probes during the 2026-06-07 RADON grid-debugging session led to MCP timeouts on subsequent trivial calls (`absTime.frame`) — TD-side state didn't recover until `restart_td`. The external-research bloat metric matched the lived experience: when probes are verbose AND stacked, the agent loses both context budget AND the ability to query at all.
+
+**Cross-link:** `mcp-tools-reference/SKILL.md` § `read_tdn` for the preferred path when reading ≥3 operators; this rule is about scoping when `read_tdn` isn't the right shape.
+
+---
+
 ## How these patterns interact
 
 Both fire on uncertainty. Fallback fires on **observed failure**; Start weak
