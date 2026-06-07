@@ -811,3 +811,30 @@ y_ceiling.par.comb0result = 'P'
 Component-wise behavior was uncertain before empirical confirmation — alternatives considered were "3 separate min-combs, one per component" or "use `clamp` instead". This is the simpler path. Verified via stress test: max-amplitude noise + max-amplitude masters all turned on — `max(P.y)` remained ≤ -0.915 in all cases.
 
 **Verify pattern when designing a single-component clamp:** stress-test before relying on it — push upstream values past the ceiling and check `numpyArray('P').max(axis=0)` after the clamp. Don't assume.
+
+### `noisePOP` `combineop` controls whether output replaces or adds to an attribute
+
+**Source:** Per-point random vector generation for sprinkle decay, 2026-06-04 | **Confidence:** HIGH
+
+`noisePOP` writes its output to the attribute named in `noiseoutputattrscope`. The `combineop` parameter controls how the noise interacts with any existing value:
+
+| `combineop` | Behavior | Use when |
+|---|---|---|
+| `'none'` | **Creates** the named attribute and writes noise into it (overwrites if exists) | Fresh attribute carrying noise — e.g. per-point random vector for downstream culling/jitter |
+| `'add'` (default) | **Adds** noise to existing attribute value (silent zero/garbage if attribute doesn't exist upstream) | Perturb an existing position/value — e.g. add jitter to P |
+
+**Common trap:** leaving `combineop='add'` (the default) while writing to a brand-new attribute scope produces empty/garbage output because there's nothing upstream to add to. No visible error — downstream consumers just see zeros or NaN.
+
+**Standard config for creating a per-point random attribute:**
+
+```python
+rand_noise.par.noise = True
+rand_noise.par.combineop = 'none'                # create, don't add
+rand_noise.par.noiseoutputattrscope = 'rndvec'   # name the attribute
+rand_noise.par.period = 0.05                     # short period for per-point variation
+rand_noise.par.amp0 = 1.0
+rand_noise.par.seed = 42
+rand_noise.par.t4d = 0                           # 0 = static seed; >0 = animate over time
+```
+
+**Verify:** after configuring, sample 10–20 points via `op('.../rand_noise').points('rndvec')` and check values are non-zero, varied per-point, and within expected amplitude range.
