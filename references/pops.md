@@ -838,3 +838,34 @@ rand_noise.par.t4d = 0                           # 0 = static seed; >0 = animate
 ```
 
 **Verify:** after configuring, sample 10–20 points via `op('.../rand_noise').points('rndvec')` and check values are non-zero, varied per-point, and within expected amplitude range.
+
+### A single MAT downstream of a merge applies to ALL merged inputs — branch styling per-point upstream of the merge
+
+**Source:** Shared multi-branch POP pipeline, 2026-06-05 (alpha tuning produced unwanted cross-branch effects) | **Confidence:** HIGH
+
+When two or more POP chains merge upstream of a single `Geometry COMP` consuming one MAT, that MAT's properties (alpha, blending, color tinting, point sprite, depth behavior) apply uniformly to ALL merged inputs. There is no per-branch styling at the MAT layer.
+
+**Symptom:** You want to dim branch A while leaving branch B at full opacity. Adjusting `MAT.par.alpha` dims BOTH because the merge happened before the MAT reads.
+
+**Fix pattern — branch styling via per-point attributes upstream:**
+
+Set per-point `Color` (or any MAT-consumed attribute) on each branch BEFORE the merge. The MAT then reads the per-point attribute, so each branch carries its own styling through the merge.
+
+```python
+# branch A — set per-point color/alpha BEFORE merge
+set_color_A.par.attr0name = 'color'
+set_color_A.par.attr0numcomps = '4'
+set_color_A.par.attr0value0 = 255   # R
+set_color_A.par.attr0value1 = 255   # G
+set_color_A.par.attr0value2 = 255   # B
+set_color_A.par.attr0value3 = 30    # alpha for branch A
+
+# branch B — different alpha
+set_color_B.par.attr0value3 = 77    # alpha for branch B
+
+# downstream merge + single MAT now displays each branch with its own alpha
+```
+
+**When the MAT is `constantMAT`:** ensure `applypointcolor=True` so per-point Color overrides the MAT's uniform color.
+
+**Mode-switch variant:** if the two "branches" are actually the same chain in different modes (via `switchPOP`), branch the attribute-setting expressions on the mode parameter — see also "Mode-switching a shared POP-chain — branch ALL noise/mutator sources" earlier in this section.

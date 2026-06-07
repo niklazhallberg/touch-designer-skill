@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-07 — [project: RADON_TREE]
 
+- **Single MAT downstream of a merge applies to all inputs — branch styling per-point upstream**: For per-branch alpha/color/blending in a merged POP chain, set per-point Color BEFORE the merge — the MAT honors per-point values when configured for it (`constantMAT.applypointcolor=True`). Adjusting MAT-level alpha dims ALL merged inputs uniformly.
+- Value for user: Resolves "I changed alpha on one branch and BOTH dimmed" confusion with a clean architecture pattern that doesn't require duplicating MATs.
+- File: `references/pops.md` § POP rendering — gotchas captured from real builds
+- Type: [discovery]
+
+### 💡 2026-06-07 — [project: RADON_TREE]
+
 - **noisePOP combineop='none' creates the output attribute; default 'add' silently fails if attr doesn't exist upstream**: Common trap when generating per-point random vectors — the default `combineop='add'` produces empty/zero output instead of a visible error. The fix is `combineop='none'` to create a fresh attribute.
 - Value for user: Saves debug-hours on "my noise op isn't outputting anything" — names the silent-failure mode and gives the correct config.
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
