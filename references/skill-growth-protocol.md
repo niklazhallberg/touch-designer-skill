@@ -93,6 +93,31 @@ The grep check (§ "When you solve something via probe") is filter 0 — does th
 
 All three YES → proceed to § In-flow ask. Any NO → silent drop, move on.
 
+## Source confidence — own empiry vs external research
+
+Gate 1 (observed failure + fix end-to-end) accepts two source types, but the resulting entry must declare which it is. Both can be saved; the reader must always see what kind of evidence is behind a claim. Don't average the two into a single "HIGH" — be explicit.
+
+### Own empiry (you observed it in this skill's production work)
+
+- **Confidence: HIGH** in the `Source:` line of the references-file entry
+- Format: `**Source:** <project>, <YYYY-MM-DD> | **Confidence:** HIGH (<one-line evidence note: probe captured, stress-test, before-after capture, etc.>)`
+- **No re-check obligation** — the agent that wrote the entry saw the fix work end-to-end. The world hasn't moved underneath us between writing and reading.
+
+### External research (forum thread, research paper, vendor announcement, blog)
+
+- **Confidence: MEDIUM max** in the `Source:` line — never HIGH from external alone
+- Format: `**Source:** [<link title>](<URL>) | Date: <when source was published> | **Confidence:** MEDIUM (<one-line evidence note: vendor statement, primary-source-verified, etc.>)`
+- **MUST include a re-check obligation** — a closing line like `**Status: verify before relying — source dated YYYY-MM-DD; re-check vendor release notes / forum if this trips a user`
+- Reason: we did not see the failure-and-fix ourselves; the world may have moved (build numbers, library versions, vendor policies). The reader needs to know to verify before depending on it.
+
+### Dual-sourced (own empiry + external corroboration)
+
+- **Confidence: HIGH** — the external source confirms what we independently observed
+- Format: cite both — `**Source:** <project>, <YYYY-MM-DD> (own observation: <one-line>) + [<external link>](<URL>) (corroborating reference) | **Confidence:** HIGH (dual-sourced)`
+- No re-check obligation (we saw it), but include the external link for future readers who want depth or want to follow the wider conversation.
+
+**The distinction matters because** "we saw it fail and fixed it" is a different kind of evidence from "someone on a forum said this is how it works." Both are useful inputs to a skill knowledge base, but the reader's confidence in *applying the rule without verification* depends on knowing which it is. Future maintainers reading a HIGH-confidence entry should be safe to act on it; a MEDIUM-confidence entry tells them to verify first.
+
 ## In-flow ask — default
 
 When a discovery passes the grep check: say it DIRECTLY to the user, in the middle of the flow.
@@ -258,6 +283,7 @@ For future team-share: discoveries from read-only colleagues (without push acces
 
 ## Changelog (of the protocol itself)
 
+- v0.3 (2026-06-07): added § Source confidence — own empiry vs external research. Distinguishes Gate-1 evidence types: own empiry → HIGH no re-check; external → MEDIUM max + obligatory re-check line; dual-sourced → HIGH with both citations. Previous protocol left implicit how external research should be represented in `Source:` lines; entries from external sources started appearing without re-check obligations, making it impossible for readers to tell "we know" from "someone reported".
 - v0.2 (2026-05-31): added § Pre-ask filters (three concrete YES/NO gates:
   observed-failure-and-fix, one-sentence-rule, user-novelty-signal) between
   § Generalization and § In-flow ask. Added § Consolidation (two triggers —

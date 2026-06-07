@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 🔧 2026-06-07 — [project: skill-meta — protocol v0.3]
+
+- **Skill-growth-protocol gains Source confidence tiers (own empiry vs external research vs dual-sourced)**: Gate 1 now distinguishes three evidence types. Own empiry → HIGH no re-check. External (forum/research/vendor) → MEDIUM max + obligatory `verify before relying — source dated YYYY-MM-DD` line. Dual-sourced (own + external corroboration) → HIGH with both citations. Reason: previous protocol left implicit how external research should be represented; entries from external sources started appearing without re-check obligations, making it impossible for readers to tell "we know" from "someone reported".
+- Value for user: Reader can immediately see whether a rule is safe to act on (HIGH/own) or needs verification first (MEDIUM/external) — distinguishes "we tested this and it worked" from "the internet says this works". Prevents stale external claims from being treated as gospel.
+- File: `references/skill-growth-protocol.md` § Source confidence — own empiry vs external research (new section between Pre-ask filters and In-flow ask) + protocol-internal changelog bump to v0.3
+- Type: [convention]
+
 ### 💡 2026-06-07 — [project: RADON_TREE]
 
 - **Inspect external geometry-source attributes before merging into an existing chain**: When merging a freshly loaded POP source (PLY, SOP-bridge, external bake) into an existing chain, attribute names + component counts + value scales must match the downstream consumer's expectations. Mismatches merge silently — no error, wrong output downstream. Recipe: probe `pointAttributes` + sample 1–5 values BEFORE wiring.
