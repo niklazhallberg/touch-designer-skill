@@ -283,6 +283,10 @@ run("me.cook(force=True)", fromOP=op('/project1/base1'), delayFrames=1)
 ```
 - Docs: https://docs.derivative.ca/Td_Module#Methods
 
+**Prefer callable form over string form.** Pass `run(myFunction, arg, delayFrames=N)` rather than `run("myFunction(arg)", delayFrames=N)` — the callable form avoids string parsing, surfaces `NameError` / `AttributeError` at call time instead of after the delay fires, and keeps stack traces readable (the traceback points at the function body, not the runtime-compiled string). Use the string form only when the callable doesn't exist in the current scope at scheduling time.
+
+**Source:** [docs.derivative.ca/Td_Module](https://docs.derivative.ca/Td_Module) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## Thread Manager
 
 Long-running Python must run in background threads. Use `op.TDResources.ThreadManager`.

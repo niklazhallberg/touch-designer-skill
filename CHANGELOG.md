@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 5/6]
+
+- **Prefer `run(myFunction, arg, delayFrames=N)` over `run("myFunction(arg)", ...)`**: Passing a callable avoids string parsing, surfaces `NameError` / `AttributeError` at call time instead of after the delay fires, and keeps stack traces readable (traceback points at the function body, not a runtime-compiled string). Reach for the string form only when the callable doesn't exist in the current scope at scheduling time.
+- Value for user: cuts debug-time when a delayed call goes wrong — the error appears synchronously at scheduling, with a useful stack trace, instead of N frames later with an obscure pointer into eval'd source.
+- File: `skills/td-api-reference/SKILL.md` § `run()` — Delayed Code Execution (extended)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 4/6]
 
 - **Offload blocking Python with subprocess — but the lever only applies to user-written code**: Blocking Python in a callback or extension freezes TD's cook. For HTTP, file I/O, or model inference: spawn a `subprocess` and read results via OSC/DAT/file rather than blocking the main thread. **Clarifying note** (in the entry as a footnote, NOT in the rule body): TD's own heavy main-thread operations like `project.save()` on a large project or large topology changes cause the same family of freeze (main-thread block) but cannot be offloaded with subprocess — that lever applies only to code we control. Cross-linked to the related-but-distinct `td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" where the block originates inside TD itself.
