@@ -244,6 +244,19 @@ When to reach for this: an expression on a frequently-cooked parameter needs to 
 
 **Source:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
 
+## Forcing a cook
+
+`op.cook(force=True)` re-cooks even when not dirty — use sparingly; every force-cook bypasses TD's lazy model and stacks into the frame budget.
+
+```python
+op('table1').cook(force=True)             # Re-cooks even if not dirty
+op('base1').cook(force=True, recurse=True) # Re-cooks the whole subtree
+```
+
+When to reach for this: a downstream consumer is reading stale data because the source's dirty-propagation didn't fire (rare — usually an upstream bug). Default first: fix the missing dirty propagation. Force-cook is the override, not the workflow.
+
+**Source:** [docs.derivative.ca/OP_Class](https://docs.derivative.ca/OP_Class) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## POPs — GPU-Accelerated Point Operators
 
 POPs process 3D geometry on the GPU (analogous to SOPs but GPU-accelerated).

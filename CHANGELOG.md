@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 2/6]
+
+- **`op.cook(force=True)` re-cooks even when not dirty — use sparingly**: Force-cook bypasses TD's lazy cook model and stacks into the per-frame budget. Reach for it as an override (a downstream consumer is reading stale data because dirty-propagation didn't fire), not as a workflow. Default first: fix the missing dirty propagation.
+- Value for user: avoids treating force-cook as the obvious lever when a stale-data symptom appears — points the agent at the underlying dirty-propagation bug first.
+- File: `skills/td-api-reference/SKILL.md` § Forcing a cook
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, D-cluster 1/6]
 
 - **`passive(op('x'))` reads Info-channel attributes without forcing a cook**: When an expression on a frequently-cooked parameter needs to peek at `width`, `numSamples`, `numChans`, or similar Info attributes of another op, wrapping the lookup in `passive()` avoids inheriting that op's cook dependency. Without it, the expression's owner gets dragged into a cascade re-cook every time the read target dirties.
