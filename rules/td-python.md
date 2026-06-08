@@ -158,6 +158,45 @@ TouchDesigner's render and texture coordinate system places **(0, 0) at the bott
 - **`TOP.sample(x, y)`**: `y=0` samples the **bottom** edge, not the top.
 - **GLSL shaders**: `gl_FragCoord.y = 0` is the bottom edge of the render.
 
+## TD Utility Modules
+
+TD ships utility modules that the agent should reach for before hand-rolling equivalents. They live in TD's bundled Python — no install, no extra setup — and they encode TD's own conventions, which hand-rolled code usually doesn't.
+
+### `TDFunctions` — clamp, digit-iteration, node arranging
+
+`TDFunctions` (no install) ships clamp, digit-iteration helpers, and node-arranging utilities — use before hand-rolling layout or numeric helpers.
+
+```python
+import TDFunctions as TDF
+
+TDF.clampValue(val, 0, 1)                 # numeric clamp
+for i in TDF.parGroupIter('Color'):       # iterate par-group digits cleanly
+    ...
+TDF.arrangeNode(myComp, ...)              # node-arrangement helpers
+```
+
+Reach for this before writing a clamp helper, a "for i in 1..N" par-name loop with manual zero-padding, or a layout helper that walks children to position them. The module is part of TD's distribution and matches TD's naming/positioning conventions.
+
+**Source:** [docs.derivative.ca/TDFunctions](https://docs.derivative.ca/TDFunctions) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+### `TDJSON` — round-trip parameters and pages to JSON
+
+`TDJSON` (no install) round-trips parameters and pages to JSON — use for declarative custom-parameter generation rather than long `appendFloat`/`appendInt` blocks.
+
+```python
+import TDJSON
+
+# Export a custom-parameter page to a JSON-shaped dict (per-parameter records)
+page_dict = TDJSON.pageToJSONDict(myComp.customPages[0])
+
+# Build (or replace) custom parameters from a JSON-shaped list
+TDJSON.addParametersFromJSONList(myComp, parsList, replace=True)
+```
+
+Reach for this when a COMP carries many custom parameters and the spec naturally reads as data — typed defaults, ranges, help text per parameter. The `appendFloat`/`appendInt`/`appendStr` form is fine for a handful of parameters; for a panel-template's worth, the JSON form is shorter, version-controllable as data, easier to diff, and survives round-trips into Embody's TDN externalization without an `appendCustomPage` Python block.
+
+**Source:** [docs.derivative.ca/TDJSON](https://docs.derivative.ca/TDJSON) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## Pre-Installed Packages
 
 Available without installation: `numpy`, `cv2` (OpenCV), `requests`, `yaml` (PyYAML), `cryptography`, `attrs`. Auto-imported stdlib: `math`, `re`, `sys`, `collections`, `enum`, `inspect`, `traceback`, `warnings`.

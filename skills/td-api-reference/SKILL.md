@@ -148,8 +148,44 @@ op('base1').unstore('count')
 op('base1').storeStartupValue('version', 1)  # Restored on project load
 ```
 
-**Gotchas:** `fetch()` searches UP hierarchy by default — use `search=False` for local-only. `store()` triggers recooks. Cannot store TD operator references — use path strings.
+**Gotchas:** `fetch()` searches UP hierarchy by default — use `search=False` for local-only. `store()` triggers recooks. Cannot store TD operator references — use path strings. Use `'key' in op.storage` as an existence test before `fetch` to distinguish "absent" from "stored falsy" — `fetch('k', 0)` returns `0` whether the key is missing OR the stored value was `0`/`False`/`''`/`None`; the membership test is the only way to tell them apart.
 - Docs: https://docs.derivative.ca/Storage
+
+**Source for membership test:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+### Typed extension state — `TDStoreTools.StorageManager`
+
+For Extension state that benefits from typed defaults and dependency-aware updates, use `TDStoreTools.StorageManager` instead of raw `store`/`fetch`.
+
+`StorageManager` wraps a COMP's storage with a typed defaults dict and dependency hooks. Reads return the stored value or fall back to the typed default; writes propagate through TD's dependency graph the same way `tdu.Dependency` does, so expressions reading the stored value recook on change.
+
+```python
+from TDStoreTools import StorageManager
+
+class MyExt:
+    def __init__(self, ownerComp):
+        self.ownerComp = ownerComp
+        defaults = {
+            'Selected': '',
+            'Count': 0,
+            'Items': [],
+        }
+        self.stored = StorageManager(self, ownerComp, defaults)
+
+    def setSelected(self, name):
+        self.stored.Selected = name        # write — triggers dependents
+        # equivalent to ownerComp.store('Selected', name) plus dep propagation
+```
+
+Reach for this when an extension carries several state values that:
+
+- Have meaningful typed defaults (an empty string vs no string at all, 0 vs missing key).
+- Should drive expressions on parameters or other ops that recook when state changes.
+- You'd otherwise reach for raw `store`/`fetch` calls scattered across methods, with manual default handling at every read site.
+
+Reach for raw `store`/`fetch` when the value is opaque or one-shot (a cached lookup, a single timestamp), or when reactivity isn't needed.
+
+**Source:** [docs.derivative.ca/TDStoreTools](https://docs.derivative.ca/TDStoreTools) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
 
 ## `tdu.Dependency` for Reactive Values
 
@@ -179,6 +215,38 @@ tdu.match('noise*', ['noise1', 'c1']) # ['noise1']
 tdu.expand('A[1-3]')                  # ['A1', 'A2', 'A3']
 tdu.tryExcept(expr, fallback)
 ```
+
+### `tdu` math classes — prefer over hand-rolled
+
+`tdu` ships `Vector / Matrix / Quaternion / Position / Color / Camera / ArcBall / Timecode` math classes — prefer these over hand-rolled math in expressions and extensions. They cover the cases where you'd otherwise reach for NumPy or write per-component float math by hand: dot/cross/length/normalize on `Vector`, full transform composition on `Matrix`, slerp/from-axis-angle on `Quaternion`, frame ↔ time conversions on `Timecode`, view/projection wrangling on `Camera`, orbital interaction on `ArcBall`.
+
+```python
+v = tdu.Vector(1, 0, 0)
+v.normalize()
+length = v.length()
+dot = v.dot(tdu.Vector(0, 1, 0))
+
+m = tdu.Matrix()                # 4x4 identity
+m.translate(1, 2, 3)
+m.rotate(45, 0, 0)              # XYZ degrees
+m.scale(2, 2, 2)
+
+q = tdu.Quaternion(45, tdu.Vector(0, 1, 0))   # 45° around Y
+q.slerp(other_q, 0.5)
+
+tc = tdu.Timecode('00:01:30:00', fps=60)
+frame = tc.frame
+```
+
+Why these over hand-rolled:
+
+- **Composition is correct by construction** — `Matrix.translate().rotate().scale()` matches TD's order conventions; rolling your own with `numpy` requires matching TD's column-major + Y-up + camera-faces-`−Z` setup or you get subtle off-by-axis bugs.
+- **Round-trips through TD types** — a `tdu.Matrix` plugs straight into operator parameters that expect a matrix; a NumPy array doesn't.
+- **No dependency on external packages** — the math classes are part of TD's built-in `tdu` module; expressions can use them directly without an import.
+
+Reach for NumPy when the work is batch-shaped (many vectors, many matrices in one operation) — the `tdu` classes are per-object; NumPy is vectorized. Reach for raw float math only for trivial one-shot operations (single add, single lerp) where pulling in `tdu.Vector` reads as overkill.
+
+**Source:** [docs.derivative.ca/Python_Classes_and_Modules](https://docs.derivative.ca/Python_Classes_and_Modules) | Page last edited: 2026-05-11 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
 
 ## DAT Cell and Text Behavior
 

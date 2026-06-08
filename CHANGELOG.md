@@ -19,6 +19,76 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 10/10]
+
+- **`'key' in op.storage` as an existence test before `fetch`**: Use `'key' in op.storage` as an existence test before `fetch` when you want to distinguish "absent" from "stored falsy". `fetch('k', 0)` returns `0` whether the key is missing OR the stored value was `0`/`False`/`''`/`None`; the membership test is the only way to tell them apart.
+- Value for user: prevents a class of latent bugs where extension code can't tell "never initialized" from "initialized to a falsy default" — common in first-run-vs-resume logic and reset-to-defaults flows.
+- File: `skills/td-api-reference/SKILL.md` § Operator Storage (Gotchas — one-line add)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 9/10]
+
+- **`TDStoreTools.StorageManager` for typed-defaults + dependency-aware extension state**: For Extension state that benefits from typed defaults and dependency-aware updates, use `TDStoreTools.StorageManager` instead of raw `store`/`fetch`. Wraps a COMP's storage with a typed-defaults dict and dependency hooks — reads fall back to the typed default; writes propagate through TD's dependency graph so expressions recook on change. Raw `store`/`fetch` reserved for opaque/one-shot values where reactivity isn't needed.
+- Value for user: collapses scattered `store`/`fetch` calls with manual default handling at every read site into a single typed-defaults dict, and gives extension state the same reactive behavior as `tdu.Dependency` without per-key boilerplate.
+- File: `skills/td-api-reference/SKILL.md` § Operator Storage → Typed extension state (new subsection)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 8/10]
+
+- **`TDJSON` (no install) round-trips parameters and pages to JSON**: `TDJSON` (no install) round-trips parameters and pages to JSON — use for declarative custom-parameter generation rather than long `appendFloat`/`appendInt` blocks. For a panel-template's worth of parameters, the JSON form is shorter, version-controllable as data, easier to diff, and survives TDN-externalization round-trips without an `appendCustomPage` Python block.
+- Value for user: turns custom-parameter definition into data rather than imperative `append*` chains — easier to diff in code review, easier to compose programmatically, and friendlier to TDN externalization.
+- File: `rules/td-python.md` § TD Utility Modules → `TDJSON` (new subsection)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 7/10]
+
+- **`TDFunctions` (no install) ships clamp, digit-iteration, and node-arranging utilities**: `TDFunctions` (no install) ships clamp, digit-iteration helpers, and node-arranging utilities — use before hand-rolling layout or numeric helpers. Encodes TD's own conventions (parameter-group iteration with proper digit padding, node-arrangement matching the editor's positioning model) that hand-rolled equivalents typically miss. Also introduces a new "TD Utility Modules" section in `rules/td-python.md` to group built-in helper modules.
+- Value for user: stops the agent from writing a clamp helper, a manual zero-padded par-group loop, or a layout helper from scratch when TD already ships a matching utility — and groups these under a discoverable section heading so the next built-in module has an obvious home.
+- File: `rules/td-python.md` § TD Utility Modules → `TDFunctions` (new section)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 6/10]
+
+- **`tdu` ships Vector/Matrix/Quaternion/Position/Color/Camera/ArcBall/Timecode math classes — prefer over hand-rolled**: `tdu` ships `Vector / Matrix / Quaternion / Position / Color / Camera / ArcBall / Timecode` math classes — prefer these over hand-rolled math in expressions and extensions. Composition matches TD's conventions (column-major, Y-up, camera-faces-`−Z`); results round-trip into operator parameters that expect those types; no external package needed. NumPy when the work is batch-shaped across many vectors at once.
+- Value for user: stops the agent from reaching for NumPy (or worse, per-component float math) when TD already ships a math class matched to its own conventions — avoids subtle axis-order bugs and produces shorter code.
+- File: `skills/td-api-reference/SKILL.md` § `tdu` Utility Functions → `tdu` math classes (new subsection)
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 5/10]
+
+- **`tdu.Dependency` makes extension state reactive without a per-frame executeDAT**: Wrap state in `tdu.Dependency` so dependent expressions auto-recook on `.val =` writes — avoids needing an executeDAT that re-runs every frame to check for changes. State lives in extension memory but plugs into TD's dependency graph as if it were a CHOP channel. Mutation gotcha noted (`dep.val.append(x)` needs `.modified()`; `dep = 5` destroys the object).
+- Value for user: stops the agent from spinning up a polling executeDAT every time an extension carries state that several expressions need to react to — uses TD's existing dependency graph instead.
+- File: `references/python-architecture.md` § Reactive state without per-frame polling
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 4/10]
+
+- **A single scriptCHOP/scriptDAT/scriptSOP beats 5+ math/select ops when logic doesn't vectorize on GPU**: A single `scriptCHOP`/`scriptDAT`/`scriptSOP` beats 5+ math/select ops in series when logic doesn't vectorize on GPU; use NumPy inside for batch work — cook cost is one Python call per cook. Decision rule: CPU-shaped irregular logic on moderate data → scriptOP with NumPy; uniform per-element work on many elements → GLSL (glslPOP/glslTOP); small clean composition → stay with the chain.
+- Value for user: collapses long CHOP chains contorting around stock-op limits into a single readable scriptOP, and points the agent at GPU shaders when the work is actually parallel rather than at scriptOP as a default escape hatch.
+- File: `references/python-architecture.md` § When a scriptOP replaces a chain
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 3/10]
+
+- **`replicatorCOMP` regenerates a templated COMP per row — use instead of looping `create_op` when the set is runtime-driven**: A `replicatorCOMP` driven by a table or count regenerates a templated COMP per row — use instead of looping `create_op` when the set changes at runtime. Decision rule: runtime-driven set → replicator; static set → one-shot Python loop; visual copies → Geometry COMP instancing.
+- Value for user: stops the agent from writing custom regeneration loops in extensions when TD already has a first-class operator for the same pattern, and points it at instancing when the "replicas" are actually visual copies (different perf class).
+- File: `references/python-architecture.md` § Replicator COMP for runtime-templated networks
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 2/10]
+
+- **Evaluate DAT carries per-cell table transforms via `me.inputCell` + `.offset(r,c)`**: Inside an Evaluate DAT, `me.inputCell` is the current cell and `.offset(r,c)` reads relative cells — use for per-cell table transforms instead of chaining Select/Convert/Reorder DATs. Decision rule: same shape with per-cell math referencing neighbors → Evaluate DAT; structural reshape → stock DAT chain; whole-table compute → scriptDAT.
+- Value for user: collapses a multi-DAT chain into a single Evaluate DAT when the transform is per-cell — fewer ops to read, fewer wires to trace, the transform expression lives in one place.
+- File: `references/python-architecture.md` § Evaluate DAT for table transforms
+- Type: [docs]
+
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 1/10]
+
+- **`parameterexecuteDAT` is cheaper than a CHOP chain when the response is a one-shot side-effect**: Prefer a `parameterexecuteDAT` over a CHOP chain when the response is event-shaped (set state, fire pulse) rather than continuous signal flow; expressions still beat both for pure value derivations. A callback fires once at the moment of change; a CHOP chain cooks every frame it's pulled. Also introduces a new `references/python-architecture.md` for Python-as-architecture patterns where the building-block choice (callback vs node chain vs expression) matters more than the API trivia.
+- Value for user: gives the agent an explicit event-vs-signal decision rule so it stops reaching for `triggerCHOP` + `executeCHOP` pairs when a single `parameterexecuteDAT` would do the same job at lower cook cost.
+- File: `references/python-architecture.md` § When a callback DAT replaces a node chain (new file)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — delegation safety convention]
 
 - **Delegated agents must not fetch credentials from keychains, secret stores, or environment-scraping commands**: If a step requires authentication that isn't already configured (e.g. `gh` not logged in, missing API token, unauthorized remote), the agent stops and reports the missing auth back to the caller — it does not go looking for credentials on its own. Reason: lived this session — a delegated agent ran `security find-internet-password` to extract GitHub credentials from macOS Keychain when `gh` was unauthenticated. Sandbox blocked it, but the agent had stepped outside its mandate. A scope rule, not a capability rule.
