@@ -119,6 +119,88 @@ Knowledge banks beyond the skills above. Load when the trigger fires; the file's
 | **Text TOP rendering / fonts** | Before configuring fonts / sizes / weights / styling on a Text TOP — OR when text renders pixelated, wrong-size, or oddly-spaced on Mac. **`keepfontratio=True` silently ignores `fontsizey`** (fontsizex is master); **Automatic Display Method has documented Mac GPU bugs at >10pt — use `dispmethod='scalable'`**; **`strokewidth` only affects `dispmethod='stroke'`** (no-op in Polygon/Bitmap/Scalable). Plus Spec DAT pattern for per-row styling | `references/text-top.md` |
 | **Hand-driven camera controls (pattern)** | Before building a MediaPipe / hand-tracking → camera-parameter binding (Y, pitch, zoom, dolly, FOV). **Five-stage CHOP chain (pick → math → presence-gate → lag → null-export)**, **two-camera split** (CameraExt-extended for mouse-navigation fallback + bare cameraCOMP as the actually-rendered one), **mirror-binding rule** before any `renderTOP.par.camera` swap. Also covers calibration drift from MediaPipe detection-order vs handedness | `references/patterns/hand-driven-camera-controls.md` |
 
+## Named Decision Rules — flat index
+
+Quick index of the named decision rules across the skill — for when you need to pick X vs Y but don't remember which file holds the rule. The Reference Lookup table above answers "I'm working on X, what file do I read?"; this index answers "I need to pick X vs Y, where's the rule?" Entries point at existing rules; no new content is asserted here.
+
+### Build-time & MCP workflow
+
+- **`read_tdn` vs `get_op` walks** — Use `read_tdn` for reading ≥3 operators (authored state); `get_op` / `get_parameter` for evaluated runtime values, cook errors, output data. See `skills/mcp-tools-reference/SKILL.md` § "TDN Network Format".
+- **`execute_python` vs many MCP calls vs `batch_operations`** — One `execute_python` when the build needs loops/conditionals/computed positions; many MCP calls for per-step error visibility; `batch_operations` for 3+ same-tool runs. See `skills/mcp-tools-reference/SKILL.md` § "Choosing `execute_python` vs many MCP calls (or `batch_operations`)".
+- **Scope MCP queries (path / family / depth) vs flat root query** — Scope to a subnet, family-filter, or depth-bound before issuing; flat `query_network('/project1')` burns 40–80% of context. See `references/approach-patterns.md` § "Scope MCP queries to prevent context-window bloat".
+- **OP Snippets / Palette vs build from scratch** — Check the in-app discovery surfaces for a working starting point before generating from-scratch implementations of recognizable TD patterns. See `references/approach-patterns.md` § "Check OP Snippets and Palette before building from scratch".
+- **Fallback — two strikes, then switch** — After two observed failures on the same sub-step, stop, propose ONE simpler alternative, report the abandoned path. See `references/approach-patterns.md` § "Fallback — two strikes, then switch".
+- **Start weak vs target quality** — On constrained platforms (M1 / mobile / browser), start at the cheapest config that proves the technique end-to-end; raise quality one axis at a time. See `references/approach-patterns.md` § "Start weak — prove the technique before tuning quality".
+
+### Operator referencing
+
+- **Relative paths vs `parent.CompName` vs `op.CompName`** — Relative for siblings/nearby; `parent.CompName` for code inside a component reaching its owner; `op.CompName` for project-wide singleton access. Never absolute. See `rules/td-python.md` § "Choosing the right reference".
+- **`op()` vs `opex()`** — `opex()` raises clearly when the operator must exist; `op()` returns `None` silently and is only correct when `None` is an acceptable result. See `skills/td-api-reference/SKILL.md` § "`op()` vs `opex()`".
+- **`debug()` vs `print()`** — `debug()` carries source DAT name and line number; use it over `print()` in TD Python. See `skills/td-api-reference/SKILL.md` § "`debug()` vs `print()`".
+
+### Python architecture (event / signal / expression)
+
+- **`parameterexecuteDAT` vs CHOP chain vs expression** — Callback DAT for one-shot side-effects on change; CHOP chain when downstream needs the value as a live signal; expression for pure value derivations with no side-effect. See `references/python-architecture.md` § "When a callback DAT replaces a node chain".
+- **Evaluate DAT vs Select/Convert/Reorder chain vs scriptDAT** — Evaluate DAT for same-shape per-cell math referencing neighbors; stock chain for structural reshape; scriptDAT for whole-table compute. See `references/python-architecture.md` § "Evaluate DAT for table transforms".
+- **`replicatorCOMP` vs Python `create_op` loop vs Geometry COMP instancing** — Replicator when the set is data-driven and changes at runtime; one-shot Python loop when the set is static; instancing when "replicas" are visual copies of geometry. See `references/python-architecture.md` § "Replicator COMP for runtime-templated networks".
+- **scriptOP vs stock-op chain vs glslPOP/glslTOP** — scriptOP for CPU-shaped irregular logic on moderate data; stock chain for clean compositions; GLSL for uniform per-element work across many elements. See `references/python-architecture.md` § "When a scriptOP replaces a chain".
+- **`tdu.Dependency` vs polling executeDAT vs `op.storage`** — Dependency for reactive state read by expressions; CHOP when it IS a signal; `op.storage` when the value must survive save/load. See `references/python-architecture.md` § "Reactive state without per-frame polling".
+
+### Cook control & performance
+
+- **`passive()` vs cooking expression** — Wrap reads of Info attributes in `passive(op)` to avoid making the caller depend on the source op's cook. See `skills/td-api-reference/SKILL.md` § "Reading without cooking".
+- **`op.cook(force=True)` vs fixing dirty propagation** — Force-cook is the override for stale dirty propagation; the default first move is fixing the missing dirty propagation upstream. See `skills/td-api-reference/SKILL.md` § "Forcing a cook".
+- **`comp.allowCooking = False` vs `bypass`** — `allowCooking = False` for whole subnetworks that should idle (cheaper — nothing inside cooks); `bypass` for single ops in a chain that still need to pass input through. See `references/td-gotchas.md` § "`comp.allowCooking = False` — gate an entire subnetwork that's irrelevant this frame".
+- **`subprocess` vs blocking Python** — Spawn a subprocess (read results via OSC / DAT / file) for HTTP / disk-heavy / inference work; blocking the main thread freezes the cook. See `references/td-architecture.md` § "Offload blocking Python with subprocess".
+- **Diagnostic-driven perf vs fixed-order optimization** — Performance Monitor + 64×64 GPU-bottleneck test before optimizing; don't apply a generic resolution → transparency → particles order without measurement. See `references/td-architecture.md` § "Performance optimization — diagnostic-driven, not a fixed order".
+- **Palette widget vs primitive** — Build from primitives (Text COMP, Constant CHOP, Switch CHOP) when the widget's extra features aren't needed — 33 internal operators vs 1 for the same button. See `references/td-architecture.md` § "Minimalism — prefer fewer operators over more".
+- **`capture_top` vs `errors=0`** — `errors=0` is necessary but not sufficient; capture the affected TOP after any render-path change. See `references/td-architecture.md` § "Visual verification — `capture_top` is ground truth".
+- **`run(callable, ...)` vs `run("string", ...)`** — Prefer the callable form: avoids string parsing, surfaces NameError/AttributeError at call time, keeps stack traces readable. See `skills/td-api-reference/SKILL.md` § "`run()` — Delayed Code Execution".
+
+### State & storage
+
+- **`TDStoreTools.StorageManager` vs raw `store`/`fetch`** — StorageManager for typed-defaults + dependency-aware extension state with several values; raw store/fetch for opaque or one-shot values where reactivity isn't needed. See `skills/td-api-reference/SKILL.md` § "Typed extension state — `TDStoreTools.StorageManager`".
+- **`'key' in op.storage` vs `fetch` with default** — Membership test when you need to distinguish "absent" from "stored falsy"; `fetch('k', default)` collapses both into the default. See `skills/td-api-reference/SKILL.md` § "Operator Storage".
+- **`tdu.Dependency.val =` vs direct assignment** — Assign through `.val` to trigger recooks; `dep = 5` destroys the Dependency object. See `skills/td-api-reference/SKILL.md` § "`tdu.Dependency` for Reactive Values".
+- **`.eval()` vs `.val`** — Always `.eval()` for runtime values; `.val` only reads the constant-mode value, and setting `.val` silently switches mode to CONSTANT. See `skills/td-api-reference/SKILL.md` § "Parameter Access Patterns".
+- **`tdu` math classes vs NumPy vs hand-rolled** — `tdu.Vector/Matrix/Quaternion/...` for per-object work matching TD's conventions; NumPy when batch-shaped across many; raw floats only for trivial one-shot. See `skills/td-api-reference/SKILL.md` § "`tdu` math classes — prefer over hand-rolled".
+
+### Render & camera
+
+- **Two-camera split (CameraExt fallback + bare hand-driven camera)** — Hand-tracking drives a bare cameraCOMP (no CameraExt) that the render points at; the CameraExt-extended camera stays as mouse-navigation fallback. See `references/patterns/hand-driven-camera-controls.md` § "The two camera-pose split (critical pattern)".
+- **Mirror bindings before swapping `renderTOP.par.camera`** — Inventory expressions/exports targeting the old camera and mirror them on the new one before the swap, or accept silent feature regression. See `references/td-gotchas.md` § "Swapping a renderTOP's camera silently breaks bindings on the old camera".
+- **Depth Peel ON vs OFF** — Enable for ≥2 overlapping transparent surfaces; leave off when there's only one transparent layer (depth peel adds render passes). See `references/td-gotchas.md` § "Depth Peel needed for nested/overlapping transparent surfaces".
+- **`layerMixTOP` vs Composite/Over chains** — In TD 2025+, prefer one `layerMixTOP` over multi-`overTOP` / `compositeTOP` chains for 3+ layers. See `references/td-2025-operators.md` § "Layer Mix TOP — replaces long Composite/Over chains".
+
+### POPs & scatter
+
+- **POPs vs SOPs (TD 2025+)** — Default to POPs for new point/particle/point-cloud/scatter work in TD 2025+; SOPs remain correct for modeling, boolean, volume operations. See `references/pops.md` § "What POPs replace vs don't replace".
+- **Sprinkle-on-surface vs grid+jitter** — `sprinklePOP` on a filled mesh surface for organic scatter; `gridPOP` + jitter produces visible artefacts (lines or cell-boundary clumps). See `references/pops.md` § "`sprinklePOP method='perprim'` distributes points PER TRIANGLE, not per area".
+- **Copy POP vs legacy Geometry COMP instancing for POP-native scatter** — Copy POP / GLSL Copy POP is the documented POP-native scatter path; legacy Instance-page pipelines need a POP→CHOP/TOP/SOP bridge. See `references/pops.md` § "What POPs replace vs don't replace".
+
+### Audio
+
+- **Lag CHOP asymmetric attack/release** — Attack 5–30 ms (sub-bass up to 50); release 150–500 ms — fast attack so beats land sharp, slow release so visuals decay musically. See `references/audio-reactive.md` § "Smoothing — asymmetric attack/release (the \"liquid\" feel)".
+- **Band averages vs direct bins** — Band averages (3–16 stable bands) for music-following response; direct bins only when bin-level jitter IS the visual. See `references/audio-reactive.md` § "Band patterns — bins vs band-averages".
+- **Ableton Link CHOP vs heuristic beat detection** — Link when a Link-aware DAW is the source; heuristic (Spectrum → low band → Lag → Threshold → Logic Off Delay) only when no Link source exists. See `references/audio-reactive.md` § "Beat detection — Audio Beat CHOP does NOT exist; build it".
+- **BlackHole + Multi-Output Device vs other Mac audio routes** — Default for system-audio (Spotify / Ableton / Logic) into TD on Mac; Loopback and Soundflower are paid / older alternatives. See `references/audio-reactive.md` § "Mac routing — BlackHole (CRITICAL)".
+
+### Mac-specific
+
+- **Mac sudden-FPS-drop diagnosis order** — `get_td_info` build → check release notes for known MoltenVK regressions → only then profile operators or decimate assets. See `references/mac-gotchas.md` § "MoltenVK regressions can halve FPS — check build version first".
+- **`dispmethod='scalable'` vs Automatic / Polygon on Mac** — Set Scalable explicitly on every Text TOP on macOS, especially >10pt; Automatic silently selects Polygon which has documented Mac GPU rendering bugs. See `references/text-top.md` § "Display Method = Scalable on macOS (avoid Automatic → Polygon)".
+- **`keepfontratio=False` when `fontsizey` must matter** — With `keepfontratio=True`, `fontsizex` drives both dimensions and `fontsizey` is silently ignored. See `references/text-top.md` § "`keepfontratio` silently ignores `fontsizey`".
+- **16-sampler reduction techniques (texture array / buffer / atlas / prune)** — Pick by data shape: `sampler2DArray` for similar 2D textures; `samplerBuffer` for large flat value arrays; atlas for many small textures; or just delete unused fetches. See `references/mac-gotchas.md` § "16-sampler GLSL cap (MoltenVK)".
+
+### Components & 3rd-party
+
+- **Route A (Daydream backend) vs Route B (Scope + Syphon) for StreamDiffusion on Mac** — Default to Route A for anything involving OpenPose/ControlNet body tracking; Route B only for Wan2.1 video continuity or LoRA-driven looks with the bridge accepted. See `references/components/streamdiffusion-td-mac.md` § "1. The decision: Route A vs Route B (head-to-head)".
+- **SD-Turbo vs SDXL-Turbo vs SD1.5 for ControlNet** — SD-Turbo or SD1.5 for literal skeletal OpenPose; SDXL-Turbo when IP-Adapter FaceID matters (drive body via Depth or Canny, not pose). See `references/components/streamdiffusion-td-mac.md` § "3. ControlNet availability is MODEL-GATED (the rule that bites)".
+- **KantanMapper vs CamSchnappr vs Stoner — projector decision tree** — Flat keystone → Stoner; 2D polygon/bezier on flat → KantanMapper; 3D model surface with ≥6 correspondences → CamSchnappr. See `references/projection-mapping.md` § "3.2 2D-content-on-flat (KantanMapper) vs 3D-object (CamSchnappr) — decision rule".
+- **TD-stays vs hand off to Resolume / MadMapper / Millumin** — Stay in TD for generative / interactive / 3D-model-based / sensor-integrated work; hand off to the external mapper for artist-friendly surface mapping, VJ clip playback, or timeline-driven installation playback. See `references/projection-mapping.md` § "5.2 When to hand off to Resolume / MadMapper / Millumin".
+- **Gaussian splat component choice on Mac** — Picks differ by context (legacy investment, fresh start, paid production, alignment with Derivative roadmap). See `references/components/gaussian-splatting-mac.md` § "Decision rule".
+- **MediaPipe `mediapipe-touchdesigner` vs `LucieMrc/MediaPipe_TD` on M1** — Use Torin's GPU-accelerated plugin (no install, Mac+PC); avoid the Python-based fork on M1 (needs Rosetta2 + x86 Python 3.7, fragile). See `references/components/streamdiffusion-td-mac.md` § "8. The tracking plugin: MediaPipe for TouchDesigner [OK]".
+
 ## Operational rules (locked)
 
 Full text in `rules/`. One-line summaries:
