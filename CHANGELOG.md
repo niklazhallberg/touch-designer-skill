@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 5/10]
+
+- **`tdu.Dependency` makes extension state reactive without a per-frame executeDAT**: Wrap state in `tdu.Dependency` so dependent expressions auto-recook on `.val =` writes — avoids needing an executeDAT that re-runs every frame to check for changes. State lives in extension memory but plugs into TD's dependency graph as if it were a CHOP channel. Mutation gotcha noted (`dep.val.append(x)` needs `.modified()`; `dep = 5` destroys the object).
+- Value for user: stops the agent from spinning up a polling executeDAT every time an extension carries state that several expressions need to react to — uses TD's existing dependency graph instead.
+- File: `references/python-architecture.md` § Reactive state without per-frame polling
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 4/10]
 
 - **A single scriptCHOP/scriptDAT/scriptSOP beats 5+ math/select ops when logic doesn't vectorize on GPU**: A single `scriptCHOP`/`scriptDAT`/`scriptSOP` beats 5+ math/select ops in series when logic doesn't vectorize on GPU; use NumPy inside for batch work — cook cost is one Python call per cook. Decision rule: CPU-shaped irregular logic on moderate data → scriptOP with NumPy; uniform per-element work on many elements → GLSL (glslPOP/glslTOP); small clean composition → stay with the chain.

@@ -145,3 +145,42 @@ A scriptOP carries arbitrary Python in place of a chain. Its cook cost is one Py
 **Status:** verify before relying — source dated [see wiki page footer]; re-check Derivative wiki / forum if this trips a user.
 
 ---
+
+## Reactive state without per-frame polling
+
+**Source:** [docs.derivative.ca/Dependency_Class](https://docs.derivative.ca/Dependency_Class) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+Wrap state in `tdu.Dependency` so dependent expressions auto-recook on `.val =` writes — avoids an executeDAT polling for changes every frame.
+
+`tdu.Dependency` is a reactive wrapper around a value. Any expression that reads `dep.val` enters TD's dependency graph; writing `dep.val = newValue` marks dependents dirty and triggers their recook. The state lives in extension memory (no DAT, no CHOP), but expressions across the project respond as if it were a CHOP channel.
+
+The alternative — polling — looks like an `executeDAT` running every frame, checking whether some Python variable changed, and forcing downstream cooks. That cost is paid every frame whether the value moved or not, and the polling logic is duplicated wherever the state matters.
+
+**Reach for `tdu.Dependency` when:**
+
+- An extension carries state that several expressions need to react to (current mode, selected item, computed setting).
+- The state changes occasionally — on event, on user action, on background completion — not every frame.
+- You'd otherwise write a CHOP channel just to publish a Python variable into the dependency graph.
+
+**Reach for a CHOP (constantCHOP, scriptCHOP) when:**
+
+- The state IS a signal — continuously updated, sampled, smoothed, mixed with other channels.
+- Other CHOPs consume it as a channel, not just expressions.
+
+**Reach for `op.storage` when:**
+
+- The value should *persist* across project save/load (`storeStartupValue`) or survive an extension reinitialization.
+- Reactive recooks are not needed — `storage` writes don't auto-trigger dependent expressions the way `tdu.Dependency` does.
+
+**Decision rule:** "Do expressions need to recook when this changes, without me wiring a CHOP for it?" → `tdu.Dependency`. "Does it need to survive a save?" → storage (and consider both — a `tdu.Dependency` whose initial value is restored from storage on init).
+
+**Mutation gotcha.** `dep.val = newValue` triggers recooks. Mutating the contents (`dep.val.append(x)`) does NOT — call `dep.modified()` afterwards. Assigning to `dep` directly (`dep = 5`) destroys the Dependency object.
+
+**Check first when:**
+
+- You're about to write an executeDAT that fires every frame just to publish a Python variable into expressions.
+- Extension methods set internal state and call `op('expr_user').cook(force=True)` to refresh dependents — Dependency does this implicitly.
+
+**Status:** verify before relying — source dated [see wiki page footer]; re-check Derivative wiki / forum if this trips a user.
+
+---
