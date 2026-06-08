@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 9/10]
+
+- **`TDStoreTools.StorageManager` for typed-defaults + dependency-aware extension state**: For Extension state that benefits from typed defaults and dependency-aware updates, use `TDStoreTools.StorageManager` instead of raw `store`/`fetch`. Wraps a COMP's storage with a typed-defaults dict and dependency hooks — reads fall back to the typed default; writes propagate through TD's dependency graph so expressions recook on change. Raw `store`/`fetch` reserved for opaque/one-shot values where reactivity isn't needed.
+- Value for user: collapses scattered `store`/`fetch` calls with manual default handling at every read site into a single typed-defaults dict, and gives extension state the same reactive behavior as `tdu.Dependency` without per-key boilerplate.
+- File: `skills/td-api-reference/SKILL.md` § Operator Storage → Typed extension state (new subsection)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 8/10]
 
 - **`TDJSON` (no install) round-trips parameters and pages to JSON**: `TDJSON` (no install) round-trips parameters and pages to JSON — use for declarative custom-parameter generation rather than long `appendFloat`/`appendInt` blocks. For a panel-template's worth of parameters, the JSON form is shorter, version-controllable as data, easier to diff, and survives TDN-externalization round-trips without an `appendCustomPage` Python block.

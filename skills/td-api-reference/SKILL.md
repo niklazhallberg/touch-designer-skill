@@ -151,6 +151,40 @@ op('base1').storeStartupValue('version', 1)  # Restored on project load
 **Gotchas:** `fetch()` searches UP hierarchy by default — use `search=False` for local-only. `store()` triggers recooks. Cannot store TD operator references — use path strings.
 - Docs: https://docs.derivative.ca/Storage
 
+### Typed extension state — `TDStoreTools.StorageManager`
+
+For Extension state that benefits from typed defaults and dependency-aware updates, use `TDStoreTools.StorageManager` instead of raw `store`/`fetch`.
+
+`StorageManager` wraps a COMP's storage with a typed defaults dict and dependency hooks. Reads return the stored value or fall back to the typed default; writes propagate through TD's dependency graph the same way `tdu.Dependency` does, so expressions reading the stored value recook on change.
+
+```python
+from TDStoreTools import StorageManager
+
+class MyExt:
+    def __init__(self, ownerComp):
+        self.ownerComp = ownerComp
+        defaults = {
+            'Selected': '',
+            'Count': 0,
+            'Items': [],
+        }
+        self.stored = StorageManager(self, ownerComp, defaults)
+
+    def setSelected(self, name):
+        self.stored.Selected = name        # write — triggers dependents
+        # equivalent to ownerComp.store('Selected', name) plus dep propagation
+```
+
+Reach for this when an extension carries several state values that:
+
+- Have meaningful typed defaults (an empty string vs no string at all, 0 vs missing key).
+- Should drive expressions on parameters or other ops that recook when state changes.
+- You'd otherwise reach for raw `store`/`fetch` calls scattered across methods, with manual default handling at every read site.
+
+Reach for raw `store`/`fetch` when the value is opaque or one-shot (a cached lookup, a single timestamp), or when reactivity isn't needed.
+
+**Source:** [docs.derivative.ca/TDStoreTools](https://docs.derivative.ca/TDStoreTools) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## `tdu.Dependency` for Reactive Values
 
 ```python
