@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 🔧 2026-06-08 — [project: skill-meta — debug-operator skill rewrite]
+
+- **`skills/debug-operator/SKILL.md` rewritten from a 24-line stub to a ~150-line hypothesis-evidence-fix procedure**. The previous stub couldn't carry the binding "load-before-debugging" mandate from project `CLAUDE.md` Critical Rule #12. The rewrite mirrors `skills/create-operator/SKILL.md` in structure (numbered procedure, key reminders, what-not-to-do) and extracts existing debug material from `td-gotchas.md`, `mac-gotchas.md`, `td-architecture.md`, `pops.md`, and `rules/network-layout.md` into a single symptom → cause map with cross-links — no new external content. Adds an Embody log inspection recipe (per Critical Rule #11), a worked-example sketch anchored to the camera-binding regression, and a "when restart_td IS the correct move" section so the restart-reflex is bounded by explicit signals rather than left ambiguous.
+- Value for user: closes the binding-rule-without-content gap (the skill was load-mandated but had nothing meaningful to load). Debug sessions now have a single procedure to follow and a single cross-linked map to consult, instead of re-deriving "what tool answers what question" each time.
+- File: `skills/debug-operator/SKILL.md` (full rewrite)
+- Type: [convention]
+
 ### 💡 2026-06-08 — [project: skill-meta — housekeeping: project-spec content belongs in the project repo]
 
 - **Moved `references/radon-tree-pipeline.md` (681 lines of project-specific Fas 2 spec) out of the skill repo.** The skill is for cross-project knowledge — patterns, decision rules, gotchas, growth-protocol entries. Project-specific pipeline specs, current-phase plans, and baked-asset conventions belong in the project's own repo. Added a "What does NOT belong in this repo" section to `README.md` codifying the rule so the trap doesn't recur. The displaced content lives at `<project>/docs/radon-tree-pipeline.md` in the RADON_TREE project; the project's `CLAUDE.md` Reference Lookup row was redirected to the new location.
