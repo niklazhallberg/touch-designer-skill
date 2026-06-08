@@ -108,3 +108,40 @@ A `replicatorCOMP` points at a template COMP plus a driver (a table DAT or a cou
 **Status:** verify before relying — source dated [see wiki page footer]; re-check Derivative wiki / forum if this trips a user.
 
 ---
+
+## When a scriptOP replaces a chain
+
+**Source:** [docs.derivative.ca/Script_CHOP](https://docs.derivative.ca/Script_CHOP) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+A single `scriptCHOP`/`scriptDAT`/`scriptSOP` beats 5+ math/select ops in series when logic doesn't vectorize on GPU; use NumPy inside for batch work.
+
+A scriptOP carries arbitrary Python in place of a chain. Its cook cost is one Python call (plus whatever the Python does); the chain it replaces costs one cook per intermediate op. For CPU-side logic that doesn't vectorize across a CHOP's parallel sample model — branching per-sample, table joins, custom interpolation — a scriptCHOP with NumPy inside is both faster and shorter than a long math/select chain that contorts itself to express the same logic in stock ops.
+
+**Reach for a scriptOP when:**
+
+- The chain would be 5+ ops in series doing CPU-shaped logic (per-sample branching, conditional resampling, custom math that doesn't map cleanly to Math/Logic/Lookup CHOPs).
+- You'd otherwise reach for an `executeCHOP` that writes into a `constantCHOP` — that's the slow path.
+- The output is regular (a CHOP with N channels, a SOP with K points, a DAT with rows) but the *computation* is irregular.
+
+**Reach for a stock-op chain when:**
+
+- The transformation is a small composition of well-named ops (filter + lag + math) — clearer to read, and TD's vectorized CHOP cook is fast.
+- The work is GPU-shaped — per-pixel TOP math, per-point POP math. Stay on the GPU; scriptOP runs on CPU.
+
+**Reach for a glslPOP/glslTOP when:**
+
+- The per-element work is uniform across thousands+ elements and benefits from GPU parallelism. ScriptOPs run one Python call per cook; GPU shaders run thousands of element threads.
+
+**Decision rule:** "Is this CPU-shaped (per-sample branching, irregular logic) on a moderate dataset?" → scriptOP with NumPy. "GPU-shaped, uniform across many elements" → GLSL. "Small clean composition of stock ops" → stay with the chain.
+
+**Use NumPy inside.** The scriptOP wins on cook count, not raw Python speed. Inside the script body, prefer `numpyArray()`-style batch reads/writes over per-sample Python loops — a scriptCHOP iterating per sample in Python is slower than the chain it replaced.
+
+**Check first when:**
+
+- A CHOP chain has grown to 5+ ops chaining selects and maths to express conditional logic.
+- An `executeCHOP` writes derived values into a `constantCHOP` every frame.
+- The logic reads as "for each sample, if X then Y else Z" — hard to express in stock CHOPs, easy in a scriptCHOP.
+
+**Status:** verify before relying — source dated [see wiki page footer]; re-check Derivative wiki / forum if this trips a user.
+
+---

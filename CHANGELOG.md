@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 4/10]
+
+- **A single scriptCHOP/scriptDAT/scriptSOP beats 5+ math/select ops when logic doesn't vectorize on GPU**: A single `scriptCHOP`/`scriptDAT`/`scriptSOP` beats 5+ math/select ops in series when logic doesn't vectorize on GPU; use NumPy inside for batch work — cook cost is one Python call per cook. Decision rule: CPU-shaped irregular logic on moderate data → scriptOP with NumPy; uniform per-element work on many elements → GLSL (glslPOP/glslTOP); small clean composition → stay with the chain.
+- Value for user: collapses long CHOP chains contorting around stock-op limits into a single readable scriptOP, and points the agent at GPU shaders when the work is actually parallel rather than at scriptOP as a default escape hatch.
+- File: `references/python-architecture.md` § When a scriptOP replaces a chain
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 3/10]
 
 - **`replicatorCOMP` regenerates a templated COMP per row — use instead of looping `create_op` when the set is runtime-driven**: A `replicatorCOMP` driven by a table or count regenerates a templated COMP per row — use instead of looping `create_op` when the set changes at runtime. Decision rule: runtime-driven set → replicator; static set → one-shot Python loop; visual copies → Geometry COMP instancing.
