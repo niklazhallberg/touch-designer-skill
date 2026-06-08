@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 7/10]
+
+- **`TDFunctions` (no install) ships clamp, digit-iteration, and node-arranging utilities**: `TDFunctions` (no install) ships clamp, digit-iteration helpers, and node-arranging utilities — use before hand-rolling layout or numeric helpers. Encodes TD's own conventions (parameter-group iteration with proper digit padding, node-arrangement matching the editor's positioning model) that hand-rolled equivalents typically miss. Also introduces a new "TD Utility Modules" section in `rules/td-python.md` to group built-in helper modules.
+- Value for user: stops the agent from writing a clamp helper, a manual zero-padded par-group loop, or a layout helper from scratch when TD already ships a matching utility — and groups these under a discoverable section heading so the next built-in module has an obvious home.
+- File: `rules/td-python.md` § TD Utility Modules → `TDFunctions` (new section)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 6/10]
 
 - **`tdu` ships Vector/Matrix/Quaternion/Position/Color/Camera/ArcBall/Timecode math classes — prefer over hand-rolled**: `tdu` ships `Vector / Matrix / Quaternion / Position / Color / Camera / ArcBall / Timecode` math classes — prefer these over hand-rolled math in expressions and extensions. Composition matches TD's conventions (column-major, Y-up, camera-faces-`−Z`); results round-trip into operator parameters that expect those types; no external package needed. NumPy when the work is batch-shaped across many vectors at once.
