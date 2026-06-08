@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 10/10]
+
+- **`'key' in op.storage` as an existence test before `fetch`**: Use `'key' in op.storage` as an existence test before `fetch` when you want to distinguish "absent" from "stored falsy". `fetch('k', 0)` returns `0` whether the key is missing OR the stored value was `0`/`False`/`''`/`None`; the membership test is the only way to tell them apart.
+- Value for user: prevents a class of latent bugs where extension code can't tell "never initialized" from "initialized to a falsy default" — common in first-run-vs-resume logic and reset-to-defaults flows.
+- File: `skills/td-api-reference/SKILL.md` § Operator Storage (Gotchas — one-line add)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 9/10]
 
 - **`TDStoreTools.StorageManager` for typed-defaults + dependency-aware extension state**: For Extension state that benefits from typed defaults and dependency-aware updates, use `TDStoreTools.StorageManager` instead of raw `store`/`fetch`. Wraps a COMP's storage with a typed-defaults dict and dependency hooks — reads fall back to the typed default; writes propagate through TD's dependency graph so expressions recook on change. Raw `store`/`fetch` reserved for opaque/one-shot values where reactivity isn't needed.

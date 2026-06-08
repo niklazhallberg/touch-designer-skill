@@ -148,8 +148,10 @@ op('base1').unstore('count')
 op('base1').storeStartupValue('version', 1)  # Restored on project load
 ```
 
-**Gotchas:** `fetch()` searches UP hierarchy by default — use `search=False` for local-only. `store()` triggers recooks. Cannot store TD operator references — use path strings.
+**Gotchas:** `fetch()` searches UP hierarchy by default — use `search=False` for local-only. `store()` triggers recooks. Cannot store TD operator references — use path strings. Use `'key' in op.storage` as an existence test before `fetch` to distinguish "absent" from "stored falsy" — `fetch('k', 0)` returns `0` whether the key is missing OR the stored value was `0`/`False`/`''`/`None`; the membership test is the only way to tell them apart.
 - Docs: https://docs.derivative.ca/Storage
+
+**Source for membership test:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
 
 ### Typed extension state — `TDStoreTools.StorageManager`
 
