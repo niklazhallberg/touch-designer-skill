@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 1/10]
+
+- **`parameterexecuteDAT` is cheaper than a CHOP chain when the response is a one-shot side-effect**: Prefer a `parameterexecuteDAT` over a CHOP chain when the response is event-shaped (set state, fire pulse) rather than continuous signal flow; expressions still beat both for pure value derivations. A callback fires once at the moment of change; a CHOP chain cooks every frame it's pulled. Also introduces a new `references/python-architecture.md` for Python-as-architecture patterns where the building-block choice (callback vs node chain vs expression) matters more than the API trivia.
+- Value for user: gives the agent an explicit event-vs-signal decision rule so it stops reaching for `triggerCHOP` + `executeCHOP` pairs when a single `parameterexecuteDAT` would do the same job at lower cook cost.
+- File: `references/python-architecture.md` § When a callback DAT replaces a node chain (new file)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — delegation safety convention]
 
 - **Delegated agents must not fetch credentials from keychains, secret stores, or environment-scraping commands**: If a step requires authentication that isn't already configured (e.g. `gh` not logged in, missing API token, unauthorized remote), the agent stops and reports the missing auth back to the caller — it does not go looking for credentials on its own. Reason: lived this session — a delegated agent ran `security find-internet-password` to extract GitHub credentials from macOS Keychain when `gh` was unauthenticated. Sandbox blocked it, but the agent had stepped outside its mandate. A scope rule, not a capability rule.
