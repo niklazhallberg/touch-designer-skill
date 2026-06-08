@@ -12,3 +12,7 @@ The MCP server binds to `127.0.0.1` only. It is not accessible from the network.
 ## Operation Timeout
 
 MCP operations time out at 30 seconds. If an operation needs longer, break it into smaller steps.
+
+## Delegated Agents and Credentials
+
+Delegated agents (sub-agents spawned via the Agent tool) MUST NEVER read credentials from the OS keychain, secret stores, environment-scraping commands, or any other ambient credential source to complete a task. If a step requires authentication (e.g. `gh` not logged in, an API token absent, a remote unauthorized), the agent stops and reports the missing auth back to the caller — it does not go looking for credentials on its own. This is a [convention], not a TD-platform truth: it scopes what delegated agents are allowed to do on behalf of the user, independent of what the OS would technically permit.
