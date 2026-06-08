@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 3/10]
+
+- **`replicatorCOMP` regenerates a templated COMP per row — use instead of looping `create_op` when the set is runtime-driven**: A `replicatorCOMP` driven by a table or count regenerates a templated COMP per row — use instead of looping `create_op` when the set changes at runtime. Decision rule: runtime-driven set → replicator; static set → one-shot Python loop; visual copies → Geometry COMP instancing.
+- Value for user: stops the agent from writing custom regeneration loops in extensions when TD already has a first-class operator for the same pattern, and points it at instancing when the "replicas" are actually visual copies (different perf class).
+- File: `references/python-architecture.md` § Replicator COMP for runtime-templated networks
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 2/10]
 
 - **Evaluate DAT carries per-cell table transforms via `me.inputCell` + `.offset(r,c)`**: Inside an Evaluate DAT, `me.inputCell` is the current cell and `.offset(r,c)` reads relative cells — use for per-cell table transforms instead of chaining Select/Convert/Reorder DATs. Decision rule: same shape with per-cell math referencing neighbors → Evaluate DAT; structural reshape → stock DAT chain; whole-table compute → scriptDAT.

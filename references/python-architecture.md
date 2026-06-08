@@ -73,3 +73,38 @@ An Evaluate DAT runs its expression once per output cell. Inside the expression,
 **Status:** verify before relying — source dated 2022-03-13; re-check Derivative wiki / forum if this trips a user.
 
 ---
+
+## Replicator COMP for runtime-templated networks
+
+**Source:** [docs.derivative.ca/Replicator_COMP](https://docs.derivative.ca/Replicator_COMP) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+A `replicatorCOMP` driven by a table or count regenerates a templated COMP per row — use instead of looping `create_op` when the set changes at runtime.
+
+A `replicatorCOMP` points at a template COMP plus a driver (a table DAT or a count parameter). When the driver changes, the replicator destroys its previous replicas and recreates one COMP per row (or one per count value), cloning the template. Per-replica customization happens in the replicator's callback DAT (`onReplicate`), which receives the new replica and its source row.
+
+**Reach for a replicatorCOMP when:**
+
+- The set of COMPs is *data-driven* — number and configuration come from a table that may change at runtime (a list of audio inputs, a connected device list, a config table loaded from disk).
+- Replicas share structure but vary in parameters or paths (a row per device, a row per output channel, a row per scene).
+- The user adds/removes entries at runtime and the network should follow.
+
+**Reach for a Python loop calling `create_op` when:**
+
+- The set is *static* — known at build time, never changes during the run. A one-shot Python loop in an extension `Init` keeps the operators visible in source control without the runtime regeneration cost.
+- You need explicit operator names that won't be shuffled by the replicator's naming scheme.
+
+**Reach for instancing (Geometry COMP instancing) when:**
+
+- The "replicas" are visual copies of geometry, not separate operators. Instancing renders thousands of copies as one draw call — much cheaper than thousands of replica COMPs each with their own render path.
+
+**Decision rule:** "Does the set change at runtime?" Yes → replicator. No → one-shot Python loop. "Are they visual copies?" → instancing, not replication.
+
+**Check first when:**
+
+- You're about to write a Python loop that recreates a set of COMPs every time a config DAT changes.
+- A panel needs N UI rows where N is read from a table.
+- A device-manager pattern: one COMP per connected device, list discovered at runtime.
+
+**Status:** verify before relying — source dated [see wiki page footer]; re-check Derivative wiki / forum if this trips a user.
+
+---
