@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-08 — [project: skill-meta — Named Decision Rules index in SKILL.md]
+
+- **Added a flat "Named Decision Rules" index to `SKILL.md`** that points at the named X-vs-Y rules already living in `rules/`, `references/`, and `skills/`. The skill's strongest dimension is decision-rule density ("when to use X vs Y", trade-off tables, when-NOT-to-use guidance), but most of those rules were buried in long reference files — an agent picking between two approaches had to remember which file held the rule or lose it. This is a pure findability fix: no new content, no new claims, just a categorized index of existing entries with their exact source-section headings. The index lives directly after the Reference Lookup table because the two serve complementary roles — Reference Lookup answers "I'm working on X, what file do I read?", the new index answers "I need to pick X vs Y, where's the rule?" Categories used: Build-time & MCP workflow, Operator referencing, Python architecture (event/signal/expression), Cook control & performance, State & storage, Render & camera, POPs & scatter, Audio, Mac-specific, Components & 3rd-party.
+- Value for user: an agent (or human) facing a decision can scan one flat list instead of remembering which reference file holds the rule. Reduces "I know we documented this somewhere" friction across the skill's growing surface area.
+- File: `SKILL.md` (new § "Named Decision Rules — flat index")
+- Type: [convention]
+
 ### 💡 2026-06-08 — [project: skill-meta — housekeeping: project-spec content belongs in the project repo]
 
 - **Moved `references/radon-tree-pipeline.md` (681 lines of project-specific Fas 2 spec) out of the skill repo.** The skill is for cross-project knowledge — patterns, decision rules, gotchas, growth-protocol entries. Project-specific pipeline specs, current-phase plans, and baked-asset conventions belong in the project's own repo. Added a "What does NOT belong in this repo" section to `README.md` codifying the rule so the trap doesn't recur. The displaced content lives at `<project>/docs/radon-tree-pipeline.md` in the RADON_TREE project; the project's `CLAUDE.md` Reference Lookup row was redirected to the new location.
