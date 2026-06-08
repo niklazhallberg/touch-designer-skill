@@ -180,6 +180,38 @@ tdu.expand('A[1-3]')                  # ['A1', 'A2', 'A3']
 tdu.tryExcept(expr, fallback)
 ```
 
+### `tdu` math classes — prefer over hand-rolled
+
+`tdu` ships `Vector / Matrix / Quaternion / Position / Color / Camera / ArcBall / Timecode` math classes — prefer these over hand-rolled math in expressions and extensions. They cover the cases where you'd otherwise reach for NumPy or write per-component float math by hand: dot/cross/length/normalize on `Vector`, full transform composition on `Matrix`, slerp/from-axis-angle on `Quaternion`, frame ↔ time conversions on `Timecode`, view/projection wrangling on `Camera`, orbital interaction on `ArcBall`.
+
+```python
+v = tdu.Vector(1, 0, 0)
+v.normalize()
+length = v.length()
+dot = v.dot(tdu.Vector(0, 1, 0))
+
+m = tdu.Matrix()                # 4x4 identity
+m.translate(1, 2, 3)
+m.rotate(45, 0, 0)              # XYZ degrees
+m.scale(2, 2, 2)
+
+q = tdu.Quaternion(45, tdu.Vector(0, 1, 0))   # 45° around Y
+q.slerp(other_q, 0.5)
+
+tc = tdu.Timecode('00:01:30:00', fps=60)
+frame = tc.frame
+```
+
+Why these over hand-rolled:
+
+- **Composition is correct by construction** — `Matrix.translate().rotate().scale()` matches TD's order conventions; rolling your own with `numpy` requires matching TD's column-major + Y-up + camera-faces-`−Z` setup or you get subtle off-by-axis bugs.
+- **Round-trips through TD types** — a `tdu.Matrix` plugs straight into operator parameters that expect a matrix; a NumPy array doesn't.
+- **No dependency on external packages** — the math classes are part of TD's built-in `tdu` module; expressions can use them directly without an import.
+
+Reach for NumPy when the work is batch-shaped (many vectors, many matrices in one operation) — the `tdu` classes are per-object; NumPy is vectorized. Reach for raw float math only for trivial one-shot operations (single add, single lerp) where pulling in `tdu.Vector` reads as overkill.
+
+**Source:** [docs.derivative.ca/Python_Classes_and_Modules](https://docs.derivative.ca/Python_Classes_and_Modules) | Page last edited: 2026-05-11 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## DAT Cell and Text Behavior
 
 All DAT cells are internally **strings**. Auto-cast to numbers in expression contexts.

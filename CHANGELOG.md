@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 6/10]
+
+- **`tdu` ships Vector/Matrix/Quaternion/Position/Color/Camera/ArcBall/Timecode math classes — prefer over hand-rolled**: `tdu` ships `Vector / Matrix / Quaternion / Position / Color / Camera / ArcBall / Timecode` math classes — prefer these over hand-rolled math in expressions and extensions. Composition matches TD's conventions (column-major, Y-up, camera-faces-`−Z`); results round-trip into operator parameters that expect those types; no external package needed. NumPy when the work is batch-shaped across many vectors at once.
+- Value for user: stops the agent from reaching for NumPy (or worse, per-component float math) when TD already ships a math class matched to its own conventions — avoids subtle axis-order bugs and produces shorter code.
+- File: `skills/td-api-reference/SKILL.md` § `tdu` Utility Functions → `tdu` math classes (new subsection)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 5/10]
 
 - **`tdu.Dependency` makes extension state reactive without a per-frame executeDAT**: Wrap state in `tdu.Dependency` so dependent expressions auto-recook on `.val =` writes — avoids needing an executeDAT that re-runs every frame to check for changes. State lives in extension memory but plugs into TD's dependency graph as if it were a CHOP channel. Mutation gotcha noted (`dep.val.append(x)` needs `.modified()`; `dep = 5` destroys the object).
