@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-08 — [project: skill-meta — housekeeping: project-spec content belongs in the project repo]
+
+- **Moved `references/radon-tree-pipeline.md` (681 lines of project-specific Fas 2 spec) out of the skill repo.** The skill is for cross-project knowledge — patterns, decision rules, gotchas, growth-protocol entries. Project-specific pipeline specs, current-phase plans, and baked-asset conventions belong in the project's own repo. Added a "What does NOT belong in this repo" section to `README.md` codifying the rule so the trap doesn't recur. The displaced content lives at `<project>/docs/radon-tree-pipeline.md` in the RADON_TREE project; the project's `CLAUDE.md` Reference Lookup row was redirected to the new location.
+- Value for user: prevents skill drift — the skill repo stays scannable and project-agnostic, and project specs stay with the project they belong to (where they're version-controlled alongside the `.toe` file and project rules).
+- File: `references/radon-tree-pipeline.md` (removed), `README.md` (new § "What does NOT belong in this repo")
+- Type: [convention]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 10/10]
 
 - **`'key' in op.storage` as an existence test before `fetch`**: Use `'key' in op.storage` as an existence test before `fetch` when you want to distinguish "absent" from "stored falsy". `fetch('k', 0)` returns `0` whether the key is missing OR the stored value was `0`/`False`/`''`/`None`; the membership test is the only way to tell them apart.

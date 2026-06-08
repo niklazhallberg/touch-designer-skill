@@ -48,3 +48,7 @@ claude
 | `templates/td-project/` (the starter shell) | `.claude/settings.local.json` (per-machine perms allowlist) |
 
 See `references/project-bootstrap.md` for the full split + Embody.tox sourcing.
+
+## What does NOT belong in this repo
+
+Project-specific pipeline specs, current-phase plans, baked-asset conventions, and other content that only generalizes to one TD project belong in **that project's own repo** (`docs/` or `.claude/notes/`), not here. The skill is for cross-project knowledge — patterns, decision rules, gotchas, growth-protocol entries. If an entry can't be stated without a project name or scene-specific numbers, it's project content, not skill content.
