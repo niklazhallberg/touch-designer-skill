@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 2/10]
+
+- **Evaluate DAT carries per-cell table transforms via `me.inputCell` + `.offset(r,c)`**: Inside an Evaluate DAT, `me.inputCell` is the current cell and `.offset(r,c)` reads relative cells — use for per-cell table transforms instead of chaining Select/Convert/Reorder DATs. Decision rule: same shape with per-cell math referencing neighbors → Evaluate DAT; structural reshape → stock DAT chain; whole-table compute → scriptDAT.
+- Value for user: collapses a multi-DAT chain into a single Evaluate DAT when the transform is per-cell — fewer ops to read, fewer wires to trace, the transform expression lives in one place.
+- File: `references/python-architecture.md` § Evaluate DAT for table transforms
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 1/10]
 
 - **`parameterexecuteDAT` is cheaper than a CHOP chain when the response is a one-shot side-effect**: Prefer a `parameterexecuteDAT` over a CHOP chain when the response is event-shaped (set state, fire pulse) rather than continuous signal flow; expressions still beat both for pure value derivations. A callback fires once at the moment of change; a CHOP chain cooks every frame it's pulled. Also introduces a new `references/python-architecture.md` for Python-as-architecture patterns where the building-block choice (callback vs node chain vs expression) matters more than the API trivia.

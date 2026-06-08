@@ -38,3 +38,38 @@ A `parameterexecuteDAT` fires a Python callback when a watched parameter changes
 **Status:** verify before relying — source dated [see wiki page footer]; re-check Derivative wiki / forum if this trips a user.
 
 ---
+
+## Evaluate DAT for table transforms
+
+**Source:** [docs.derivative.ca/Python_Tips](https://docs.derivative.ca/Python_Tips) | Page last edited: 2022-03-13 | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
+Inside an Evaluate DAT, `me.inputCell` plus `.offset(r,c)` reads relative cells — use for per-cell table transforms instead of chained Select/Convert/Reorder DATs.
+
+An Evaluate DAT runs its expression once per output cell. Inside the expression, `me.inputCell` is the corresponding input cell, and `me.inputCell.offset(rowDelta, colDelta)` reads cells relative to it. This lets a single DAT carry a per-cell transform that would otherwise require a chain — Select DAT to slice columns, Convert DAT to change types, Reorder DAT to reshape, plus glue ops to wire them together.
+
+**Reach for an Evaluate DAT when:**
+
+- The transform is *per cell* and references neighbors (previous row, adjacent column, header row).
+- The output shape is the same as the input — same rows, same columns, transformed values.
+- The logic is too specific to fit a stock DAT (e.g. format a value based on a cell two rows up, conditionally rewrite a column).
+
+**Reach for a Select/Convert/Reorder chain when:**
+
+- The transform is *structural* — pick columns, drop rows, change a numeric column to a string column. Stock DATs do this with no Python.
+- A single stock DAT already covers the case — don't reach for Evaluate just because you can.
+
+**Reach for a scriptDAT when:**
+
+- The output shape differs from the input (compute new rows from aggregates, fan out one row to many).
+- The transform needs the whole table at once (sort, group, join with another DAT).
+
+**Decision rule:** "Same shape, per-cell math referencing neighbors" → Evaluate DAT. "Structural reshape" → stock DAT chain. "Whole-table compute" → scriptDAT.
+
+**Check first when:**
+
+- A Select+Convert+Reorder chain exists to do work that boils down to "transform each cell based on its row/column position".
+- You're about to write a per-row loop in an executeDAT to populate a derived table.
+
+**Status:** verify before relying — source dated 2022-03-13; re-check Derivative wiki / forum if this trips a user.
+
+---
