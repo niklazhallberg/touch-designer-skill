@@ -179,6 +179,24 @@ Reach for this before writing a clamp helper, a "for i in 1..N" par-name loop wi
 
 **Source:** [docs.derivative.ca/TDFunctions](https://docs.derivative.ca/TDFunctions) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
 
+### `TDJSON` — round-trip parameters and pages to JSON
+
+`TDJSON` (no install) round-trips parameters and pages to JSON — use for declarative custom-parameter generation rather than long `appendFloat`/`appendInt` blocks.
+
+```python
+import TDJSON
+
+# Export a custom-parameter page to a JSON-shaped dict (per-parameter records)
+page_dict = TDJSON.pageToJSONDict(myComp.customPages[0])
+
+# Build (or replace) custom parameters from a JSON-shaped list
+TDJSON.addParametersFromJSONList(myComp, parsList, replace=True)
+```
+
+Reach for this when a COMP carries many custom parameters and the spec naturally reads as data — typed defaults, ranges, help text per parameter. The `appendFloat`/`appendInt`/`appendStr` form is fine for a handful of parameters; for a panel-template's worth, the JSON form is shorter, version-controllable as data, easier to diff, and survives round-trips into Embody's TDN externalization without an `appendCustomPage` Python block.
+
+**Source:** [docs.derivative.ca/TDJSON](https://docs.derivative.ca/TDJSON) | Page last edited: see wiki | **Confidence:** MEDIUM (Derivative wiki — verify in your TD version)
+
 ## Pre-Installed Packages
 
 Available without installation: `numpy`, `cv2` (OpenCV), `requests`, `yaml` (PyYAML), `cryptography`, `attrs`. Auto-imported stdlib: `math`, `re`, `sys`, `collections`, `enum`, `inspect`, `traceback`, `warnings`.

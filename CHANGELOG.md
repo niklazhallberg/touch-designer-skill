@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 8/10]
+
+- **`TDJSON` (no install) round-trips parameters and pages to JSON**: `TDJSON` (no install) round-trips parameters and pages to JSON — use for declarative custom-parameter generation rather than long `appendFloat`/`appendInt` blocks. For a panel-template's worth of parameters, the JSON form is shorter, version-controllable as data, easier to diff, and survives TDN-externalization round-trips without an `appendCustomPage` Python block.
+- Value for user: turns custom-parameter definition into data rather than imperative `append*` chains — easier to diff in code review, easier to compose programmatically, and friendlier to TDN externalization.
+- File: `rules/td-python.md` § TD Utility Modules → `TDJSON` (new subsection)
+- Type: [docs]
+
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 7/10]
 
 - **`TDFunctions` (no install) ships clamp, digit-iteration, and node-arranging utilities**: `TDFunctions` (no install) ships clamp, digit-iteration helpers, and node-arranging utilities — use before hand-rolling layout or numeric helpers. Encodes TD's own conventions (parameter-group iteration with proper digit padding, node-arrangement matching the editor's positioning model) that hand-rolled equivalents typically miss. Also introduces a new "TD Utility Modules" section in `rules/td-python.md` to group built-in helper modules.
