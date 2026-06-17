@@ -420,3 +420,69 @@ Any hit is a potential time-bomb. Confirm by checking whether the `elapsed` inpu
 - A material goes invisible / fully opaque without any visible code change between sessions
 - Writing any new easing function — clamp `t` to `[0, 1]` at the input, not just the output
 - A storage key named `_*_start_frame`, `_*_t0`, `_*_anim_t` exists in the project — audit every reader of it
+
+---
+
+## Scene-graph gotchas captured from real work
+
+### Duplicating a COMP via `proj.copy()` does NOT add it to the `renderTOP.par.geometry` list
+
+**Source:** RADON_TREE project, 2026-06-17 | **Confidence:** HIGH (own observation: duplicated geo COMP produced 16,000 valid points, render=True, in the scene network, but rendered nothing — probe revealed it was absent from `render1.par.geometry`; manual append restored visibility immediately)
+
+**Symptom.** You duplicate an existing visible geometry COMP via `proj.copy(src, name='New')` or via Ctrl+C / Ctrl+V in the network editor. The new COMP has identical structure (same internal POPs, same MAT, same point count, same `render`/`display` flags = True). You position it in the scene, force-cook it, confirm its `OUT` produces valid points. It renders **nothing**.
+
+**Root cause.** `renderTOP.par.geometry` is an **OP-list parameter** containing explicit references to each geometry COMP in the scene. It is NOT auto-discovered from "all geometry COMPs under this parent" or "the network hierarchy". A new COMP — whether duplicated, created from scratch, or imported — is invisible to the render pipeline until its path is explicitly added to that list.
+
+`proj.copy(src, name='X')` clones the COMP and all its children, copies parameters, but does NOT walk the project's render TOPs and update their geometry lists. The new COMP is structurally a sibling of the original but is render-pipeline-orphaned.
+
+**Symptom signature.**
+
+- `comp.render = True`, `comp.display = True` (correctly set, often inherited from the source)
+- `comp.op('OUT').numPoints()` > 0 (geometry is being produced)
+- No errors on the COMP, no warnings, MAT looks fine
+- Other COMPs in the same area render correctly with the same MAT and POP chain
+- Force-cook on the render TOP doesn't help
+- Force-cook on the new COMP doesn't help
+
+If you check `[g.path for g in render1.par.geometry.evalOPs()]`, the new COMP's path is absent.
+
+**Fix.**
+
+```python
+r1 = op('/project1/Scene/render1')                     # the render TOP
+new_comp = op('/project1/Scene/MyDuplicatedGeo')       # the new COMP
+
+current = list(r1.par.geometry.evalOPs())
+if new_comp not in current:
+    current.append(new_comp)
+    r1.par.geometry = ' '.join(c.path for c in current)
+```
+
+The OP-list parameter expects a space-separated string of paths. `.evalOPs()` returns the current list as `OP` objects; rebuild the string after appending.
+
+**Make duplication a two-step pattern.** Any helper / agent code that creates or duplicates render-visible COMPs should immediately register them with the relevant render TOP(s) in the same call:
+
+```python
+def add_to_scene(new_comp, render_top):
+    """Idempotent — safe to call even if already in the list."""
+    current = list(render_top.par.geometry.evalOPs())
+    if new_comp not in current:
+        current.append(new_comp)
+        render_top.par.geometry = ' '.join(c.path for c in current)
+```
+
+**The same gotcha applies to:**
+
+- `tdu.fileType.cloneOp(src, ...)` and any other clone API
+- Importing a `.tox` containing a geometry COMP — registered in the .tox, not in the parent's render TOP
+- Programmatically creating a new `geometryCOMP` via `parent.create(geometryCOMP, 'name')`
+- Moving a COMP from one parent to another (the source parent's render TOP keeps the old reference; the new parent's doesn't get the new one)
+
+**Audit.** When debugging "new geometry isn't rendering" symptoms, this is the FIRST thing to check — before MAT issues, before POP chain issues, before camera issues. One MCP query resolves it.
+
+**Check first when:**
+
+- You just duplicated a geometry COMP and it's invisible despite render/display flags being True
+- An imported `.tox` brings in a geometry COMP that doesn't render in the host scene
+- You created a new geometryCOMP programmatically (agent or script) and it's not appearing
+- A working scene "loses" a piece of geometry after a network reorganization or COMP move

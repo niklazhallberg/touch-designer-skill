@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-17 — [project: RADON_TREE]
 
+- **Duplicating a COMP via `proj.copy()` does NOT add it to the `renderTOP.par.geometry` list**: TD's render TOPs use an explicit OP-list parameter to know which geometry COMPs to draw; the list is NOT auto-discovered. Duplicating a working scene COMP (or creating one programmatically, or importing one via .tox) leaves the new COMP render-pipeline-orphaned — it has render=True, display=True, valid OUT geometry, no errors, and renders nothing. Documents the symptom signature (so future debugging starts with "check the render TOP's geometry list" instead of MAT/POP-chain rabbit holes), the idempotent append helper, and all related cases (clone APIs, .tox import, programmatic create, COMP move between parents).
+- Value for user: short-circuits a class of "the duplicate looks identical but won't render" mysteries. First thing to check when new geometry doesn't appear despite everything looking correct on the COMP itself. Adds a "make duplication a two-step pattern" recipe to prevent the bug in the first place.
+- File: `references/td-gotchas.md` § "Scene-graph gotchas captured from real work" — "Duplicating a COMP via `proj.copy()` does NOT add it to the `renderTOP.par.geometry` list"
+- Type: [discovery]
+
+### 💡 2026-06-17 — [project: RADON_TREE]
+
 - **Pre-bake per-point values into PLY when each point needs a unique computed value**: For static per-point variation derived from position (edge-feather alpha, color ramp by Y, scale by mesh region), TD's `attributePOP` can't help (it sets constants, no per-point expressions) and `glslPOP` is overkill (per-frame GPU work for values that never change). The right tool is a one-shot Python script: read the PLY, compute the per-point value, write a new PLY, point `pointfileinPOP` at it. Includes the recipe (struct unpack/pack, smoothstep with clamped t, premultiplied-alpha pattern for `pointcolorpremult='alreadypremult'`), the chain gotcha (bypass any downstream `attributePOP` that would overwrite baked values), and the decision rule (static → bake; runtime-varying → glslPOP).
 - Value for user: turns "I need per-point variation" from a glsl-shader-debugging session into a 30-line Python script + bypass-one-OP — saves the runtime cost, the shader-compile-error rabbit holes, and the per-frame CPU/GPU budget. Especially valuable when targeting Mac/MoltenVK where glslPOP has cap limits.
 - File: `references/pops.md` § "Pre-bake per-point values into PLY when each point needs a unique computed value"
