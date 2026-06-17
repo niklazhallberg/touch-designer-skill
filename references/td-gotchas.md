@@ -358,3 +358,65 @@ Any key with 2+ writers AND used as a gate elsewhere is a latent bug. Especially
 - A bug report sounds like "the user blocks themselves" or "works once then stops"
 - The storage key has a generic/symptom name (`_active`, `_engaged`, `_busy`, `_ready`)
 - A new feature needs to "block motion / interaction" — design with a single-writer flag from day 1
+
+### Easing formulas + storage-based frame stamps — clamp `t` to [0, 1] or it explodes between sessions
+
+**Source:** RADON_TREE project, 2026-06-17 | **Confidence:** HIGH (own observation: storage probe captured the runaway value at ~81 million; clamp fix verified by re-probe in [0, 1] range and recovery of visibly-broken material)
+
+**Symptom.** A value that should stay in `[0, 1]` (alpha, blend amount, fade progress) silently flies off to millions or negative millions after a TD session restart. Downstream consumers clamp it to a single value (0 or 1) producing all-or-nothing artifacts: an entire material goes invisible, a fade overlay locks fully on, a color shifts to pure black. No error in the console, no warning, the OPs cook clean.
+
+**Root cause.** Easing formulas (`smoothstep`, `1 - (1 - t)**2`, custom in-out curves) are written to take `t ∈ [0, 1]` and produce a value in the same range. When fed a `t` outside that range, they produce arbitrarily large positive or negative outputs:
+
+```python
+# safe inside [0,1]
+def smoothstep(t): return t * t * (3 - 2 * t)
+
+# t = -10000 (negative t)
+# → t² = 100_000_000
+# → 3 - 2t = 20003
+# → output = 100_000_000 × 20003 ≈ 2 × 10¹²
+```
+
+The negative `t` typically comes from frame-stamp arithmetic on storage values that survived between TD sessions:
+
+```python
+# Sets the start frame on first run
+sc.store('_anim_start_frame', float(absTime.frame))
+# ... later, animation logic reads it back:
+elapsed = absTime.frame - sc.fetch('_anim_start_frame', float(absTime.frame))
+t = min(1.0, elapsed / DURATION)   # ← only clamps the UPPER bound
+```
+
+After a TD restart, `absTime.frame` resets to 0 but `_anim_start_frame` still holds (say) 1,500,000 from the previous session. `elapsed` becomes -1,500,000, `t` is -25,000 (not 0), and the eased output blows up. Downstream code that does `material.alpha = max(0, eased_value)` clamps to 0 and the material goes invisible permanently — until either the storage is unstored or the user happens to re-trigger the anim's reset path.
+
+**Fix — always clamp `t` to `[0, 1]` BEFORE easing:**
+
+```python
+# WRONG — only clamps the upper bound
+t = min(1.0, elapsed / DURATION)
+
+# RIGHT — clamps both ends
+t = max(0.0, min(1.0, elapsed / DURATION))
+```
+
+This is a one-line change, hard to debug, easy to miss in code review. Make it a habit on every `t = ... / DURATION` line in a TD project.
+
+**Why `min(1.0, ...)` alone is the common bug.** The mental model is "I'm computing progress 0→1, so I cap at 1.0 to handle 'past the end'." Most developers don't consider the negative case because in a single session it can't happen — `absTime.frame` only increases. The negative path only manifests across session restarts, by which time the original author may have shipped.
+
+**Detection (audit cue).**
+
+```bash
+# Find easing-prep lines that clamp upper but not lower
+grep -rn "t = min(1.0\|t = min(1," project_DATs/   # candidate single-side-clamps
+```
+
+Any hit is a potential time-bomb. Confirm by checking whether the `elapsed` input is derived from `absTime.frame - sc.fetch('_some_start_frame', ...)`.
+
+**Probe to confirm after the fact.** If you suspect this bug in a project that "started acting weird after restart": dump all `_*_visibility`, `_*_progress`, `_*_alpha` storage keys. Any value with absolute magnitude > 10 (especially millions) is the smoking gun.
+
+**Check first when:**
+
+- An animated value silently saturates to 0 or 1 after a TD restart
+- A material goes invisible / fully opaque without any visible code change between sessions
+- Writing any new easing function — clamp `t` to `[0, 1]` at the input, not just the output
+- A storage key named `_*_start_frame`, `_*_t0`, `_*_anim_t` exists in the project — audit every reader of it

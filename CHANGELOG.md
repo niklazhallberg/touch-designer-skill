@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-17 — [project: RADON_TREE]
 
+- **Easing formulas + storage-based frame stamps — clamp `t` to [0, 1] or it explodes between sessions**: TD `_start_frame`-style storage keys survive between sessions but `absTime.frame` resets to 0 on restart. Naive `t = min(1.0, elapsed / DURATION)` only clamps the upper bound — negative `t` (from negative elapsed time) silently produces million-scale eased outputs that downstream clamps trap to 0 or 1, killing materials/animations permanently. Today: `_dim_visibility` blew up to 81 million from a stale `_dim_start_frame`, dimming TumbaEnv to invisibility. One-line fix: `t = max(0.0, min(1.0, elapsed / DURATION))`. Documents the fix pattern, detection grep, and a smoking-gun probe for storage keys > 10 in magnitude.
+- Value for user: prevents a class of silent "after restart, this material/animation no longer works" bugs. Adds a code-review habit (clamp `t` at both ends, not just upper), an audit grep for single-side `min(1.0, ...)` clamps, and a recovery diagnosis (dump `_*_visibility`/`_*_progress`/`_*_alpha` and look for absurd magnitudes).
+- File: `references/td-gotchas.md` § "Storage gotchas captured from real work" — "Easing formulas + storage-based frame stamps"
+- Type: [discovery]
+
+### 💡 2026-06-17 — [project: RADON_TREE]
+
 - **Multi-source storage as a behavior gate — catch-22 by construction**: A TD storage key with two or more writers across the project cannot serve as a behavior gate elsewhere — each writer sets the value for its own semantic reason, but the gate reader can only see the value (0 or 1), not why. Writer A trips a gate that was meant to be controlled by writer B, and the user's own action ends up blocking the user's own action. Today: `_user_engaged` was set by both a UI-visibility latch (gas-streak ≥ 20) and an intro-freeze (block motion during video); a new `net_speed` gate based on it meant "the user gases for two seconds, then can't gas anymore". Documented the rename/split fix, the source-specific-keys + OR-aggregate fix, audit cue for symptom-named keys (`_active`/`_engaged`/`_busy`), and a worked example.
 - Value for user: prevents a class of "the user blocks themselves" / "works once then stops" bugs by treating storage keys as owned resources, not shared globals. Adds an audit step (grep `store('key'` to count writers before using a key as a gate). Names the failure mode so it's recognizable next time the symptom appears.
 - File: `references/td-gotchas.md` § "Storage gotchas captured from real work" — "Multi-source storage as a behavior gate — catch-22 by construction"
