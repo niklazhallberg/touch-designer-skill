@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-17 — [project: RADON_TREE]
 
+- **Pre-bake per-point values into PLY when each point needs a unique computed value**: For static per-point variation derived from position (edge-feather alpha, color ramp by Y, scale by mesh region), TD's `attributePOP` can't help (it sets constants, no per-point expressions) and `glslPOP` is overkill (per-frame GPU work for values that never change). The right tool is a one-shot Python script: read the PLY, compute the per-point value, write a new PLY, point `pointfileinPOP` at it. Includes the recipe (struct unpack/pack, smoothstep with clamped t, premultiplied-alpha pattern for `pointcolorpremult='alreadypremult'`), the chain gotcha (bypass any downstream `attributePOP` that would overwrite baked values), and the decision rule (static → bake; runtime-varying → glslPOP).
+- Value for user: turns "I need per-point variation" from a glsl-shader-debugging session into a 30-line Python script + bypass-one-OP — saves the runtime cost, the shader-compile-error rabbit holes, and the per-frame CPU/GPU budget. Especially valuable when targeting Mac/MoltenVK where glslPOP has cap limits.
+- File: `references/pops.md` § "Pre-bake per-point values into PLY when each point needs a unique computed value"
+- Type: [discovery]
+
+### 💡 2026-06-17 — [project: RADON_TREE]
+
 - **Easing formulas + storage-based frame stamps — clamp `t` to [0, 1] or it explodes between sessions**: TD `_start_frame`-style storage keys survive between sessions but `absTime.frame` resets to 0 on restart. Naive `t = min(1.0, elapsed / DURATION)` only clamps the upper bound — negative `t` (from negative elapsed time) silently produces million-scale eased outputs that downstream clamps trap to 0 or 1, killing materials/animations permanently. Today: `_dim_visibility` blew up to 81 million from a stale `_dim_start_frame`, dimming TumbaEnv to invisibility. One-line fix: `t = max(0.0, min(1.0, elapsed / DURATION))`. Documents the fix pattern, detection grep, and a smoking-gun probe for storage keys > 10 in magnitude.
 - Value for user: prevents a class of silent "after restart, this material/animation no longer works" bugs. Adds a code-review habit (clamp `t` at both ends, not just upper), an audit grep for single-side `min(1.0, ...)` clamps, and a recovery diagnosis (dump `_*_visibility`/`_*_progress`/`_*_alpha` and look for absurd magnitudes).
 - File: `references/td-gotchas.md` § "Storage gotchas captured from real work" — "Easing formulas + storage-based frame stamps"

@@ -909,3 +909,90 @@ Compare against the existing chain's expectations — sample the same attribute 
 Insert an `attributePOP` (or `attributecreatePOP`) on the new branch BEFORE the merge that synthesizes the missing attributes at matching name/count/scale. For value-scale mismatch (0–1 float to 0–255 byte), use a `mathPOP` to rescale before the merge.
 
 **Verify:** after merging, capture the render and compare against the pre-merge baseline. If the rendered output differs in color, size, or visibility from "what the new points should add", run the inspection recipe on both branches at the merge point and reconcile.
+
+### Pre-bake per-point values into PLY when each point needs a unique computed value
+
+**Source:** RADON_TREE project, 2026-06-17 | **Confidence:** HIGH (own observation: edge-feather effect on a 9000-point wedge — uniform-alpha attempts failed visibly; baked-PLY fix produced the soft edges in a single iteration)
+
+**When this rule applies.** You want a chain of points where **each point has a different value of some attribute** (alpha that fades by edge distance, color that ramps by Y, point-scale that varies by mesh region), and that value is **computable from the point's static position**. The variation never changes at runtime — it's geometric, not animated.
+
+**Why the obvious tools don't work.**
+
+- **`attributePOP`** sets attributes from CONSTANTS or upstream attribute references. It does NOT support per-point Python expressions that read `P[0]`, `P[1]`, `P[2]`. Every point gets the same value.
+- **`mathcombinePOP`** can combine attributes but doesn't introduce new computed values — it transforms what's already there.
+- **`glslPOP` / `glsladvancedPOP`** can do per-point computation but requires writing a vertex shader, declaring `popInVal` / `popOut` structures, managing uniforms, and (on Mac/MoltenVK) hitting cap limits or silent failures. Overkill for static geometry — the shader runs every frame to recompute values that never change.
+- **noise-based variation** (`noisePOP`) can ramp values by position but only via noise patterns, not arbitrary math like "distance to nearest edge in XZ".
+
+**The fix: bake the values into the PLY once with a Python script, then load via `pointfileinPOP`.**
+
+```python
+# Pattern: read PLY → compute per-point values → write new PLY
+# Worked example: edge-feathered alpha for a wedge shape, premultiplied
+# so it composites correctly with constantMAT's pointcolorpremult='alreadypremult'.
+import struct, re
+
+SRC = 'Assets/source.ply'
+DST = 'Assets/source_feathered.ply'
+
+with open(SRC, 'rb') as f:
+    data = f.read()
+
+# Split header / binary (PLY format: ASCII header, ends with "end_header\n")
+hdr_end = data.index(b'end_header\n') + len(b'end_header\n')
+header_bytes = data[:hdr_end]
+binary = data[hdr_end:]
+header_str = header_bytes.decode('ascii', errors='replace')
+N = int(re.search(r'element vertex (\d+)', header_str).group(1))
+
+# Adjust the FMT to match the PLY's per-vertex property layout.
+# This example: x,y,z, r,g,b,a, pointscale  (8 floats, 32 bytes per vertex).
+FMT = '<8f'
+FSIZE = 32
+
+# Optionally compute geometry bounds for relative-position math
+xs, zs = [], []
+for i in range(N):
+    x, y, z, *_ = struct.unpack_from(FMT, binary, i*FSIZE)
+    xs.append(x); zs.append(z)
+half_w = max(abs(min(xs)), abs(max(xs)))
+half_z = max(abs(min(zs)), abs(max(zs)))
+
+def smoothstep(e0, e1, x):
+    t = max(0.0, min(1.0, (x - e0) / (e1 - e0)))   # clamp t — see td-gotchas
+    return t * t * (3.0 - 2.0 * t)
+
+out = bytearray(binary)
+for i in range(N):
+    x, y, z, r, g, b, a, ps = struct.unpack_from(FMT, binary, i*FSIZE)
+    # Edge-fade alpha based on max(normalized X distance, normalized Z distance)
+    fx = abs(x) / max(half_w, 1e-6)
+    fz = abs(z) / max(half_z, 1e-6)
+    edge = max(fx, fz)
+    fade = 1.0 - smoothstep(0.55, 1.0, edge)
+    new_a = fade
+    # Pre-multiply RGB by alpha for constantMAT pointcolorpremult='alreadypremult'
+    nr, ng, nb = r * fade, g * fade, b * fade
+    struct.pack_into(FMT, out, i*FSIZE, x, y, z, nr, ng, nb, new_a, ps)
+
+with open(DST, 'wb') as f:
+    f.write(header_bytes + bytes(out))
+```
+
+**Critical chain detail.** If the existing POP chain has an `attributePOP` that sets `Color` uniformly downstream of the `pointfileinPOP`, that attributePOP will OVERWRITE your baked per-point values. **Bypass it** so the PLY's baked attributes pass through:
+
+```python
+op('.../set_color').bypass = True
+```
+
+Verify by checking downstream OPs' point counts and a few sample Color values — confirm the variation made it through.
+
+**Premultiplied-alpha gotcha.** If the downstream MAT is `constantMAT` with `pointcolorpremult='alreadypremult'` (a common setting for additive/blended POP rendering), the PLY's RGB values MUST be premultiplied by alpha (`R*a, G*a, B*a, a`). Otherwise, alpha < 1 will dim the result MORE than expected — once from the per-point alpha and once from the MAT's premult-assumption. The example above does this.
+
+**Decision rule:** if the per-point variation is **static** (doesn't animate, doesn't respond to live input), pre-bake. If it must vary at runtime (responds to a parameter, hand position, time), use `glslPOP`. The pre-bake is one-time CPU cost, no per-frame cost. The glslPOP is per-frame GPU cost.
+
+**Check first when:**
+
+- An edge-fade, color ramp, scale variation, or other position-derived value needs to apply per-point
+- Tried `attributePOP` and it set every point to the same value (it always does — that's its design)
+- Considering `glslPOP` for static geometry — ask first whether the variation could be baked instead
+- A constantMAT downstream uses `pointcolorpremult='alreadypremult'` — make sure the PLY values are premultiplied or the alpha math will double-apply
