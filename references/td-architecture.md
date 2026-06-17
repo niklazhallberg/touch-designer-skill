@@ -141,3 +141,38 @@ This pattern applies to **user-written Python**. TD's own heavy main-thread oper
 - Symptoms include sudden FPS drops timed with specific user actions (button click, file open)
 - The work depends on packages that don't ship with TD's Python or conflict with it
 - You want crash isolation (worker crash doesn't kill TD)
+
+---
+
+## Parallel pipelines — the "bypasses broken X" anti-pattern
+
+**Source:** RADON_TREE project, 2026-06-17 | **Confidence:** HIGH (own observation: full rip-out cycle from diagnosis through verification of single-pipeline restoration)
+
+**Symptom.** A TD project contains two scripts orchestrating the same state machine. One is the original intended system (typically a frame-driven `executeDAT`, a callback chain on a CHOP, or an `onCook` handler). The other is a duplicate script (often a `panelexec` with `run(..., delayFrames=N)` callbacks) marked with a comment along the lines of `# bypasses broken X` / `# autonomous pipeline` / `# parallel flow`. Bugs that look like race conditions appear: state flips back and forth, timing is off by ~1 frame, fade tweens don't fire, transient values from one pipeline get clobbered by the other.
+
+**Root cause.** Both pipelines write to the same storage keys (state flags, frame stamps, animation values) on the same COMP. Per-frame order of operations across TD's callback queue, frame-start callbacks, and operator cook order is non-deterministic — one pipeline's write wins one frame and loses the next. Hardcoded `delayFrames=N` constants in the bypass tend to drift off by 1-2 frames from real durations (e.g. video length, project FPS), producing intermittent visible glitches that are hard to localize.
+
+**Why the bypass exists.** The original "broken X" was usually broken by 1-3 small unrelated bugs (a missing `try/except` on a renamed channel; a `min(1.0, t)` that didn't clamp negative `t` and so blew up from stale storage between sessions; a typo'd path). The patch-author chose to bypass rather than fix, because the bypass was an additive change that "worked" locally during a deadline crunch, while fixing X meant understanding code they hadn't written. Over weeks, additional features land on the bypass, hardening the duplication.
+
+**Detection (audit cue).** Grep all DAT contents for comments containing `bypass`, `broken`, `autonomous`, `parallel`, `shadow`, `temporary`, or any framing that admits the existing system is being routed around. Treat each such comment as a `// TODO: rip this out` marker — it almost always is. A second audit signal: more than one place writes to the same storage key controlling a state-machine flag (multi-source storage as a state gate is itself a bug — cross-link `td-gotchas.md` if/when that rule lands).
+
+**Fix protocol (in order — don't skip steps).**
+
+1. **Snapshot first.** Name a rollback file outside the auto-bump series (e.g. `<projectname>_PRE_<refactor>.toe`). The auto-bump series will overwrite normal saves; a named file is your guarantee of return.
+2. **Inventory the bypass.** Build a feature-matrix table: what does the bypass do that the original system doesn't? Categorize as "must backport", "redundant with original", "incidental side-effect we can drop".
+3. **Identify why X was deemed broken.** There is usually 1-3 small fixable bugs, often unrelated to the stated reason in the bypass comment. Probe the original system in isolation (cook it, watch its log, watch its storage writes) to surface the real fault.
+4. **Fix the original — verify end-to-end.** Don't just fix the code; observe the original failure mode disappear (e.g. the log resumes growing, the tween animates, the state transition fires).
+5. **Backport bypass-only features into the original.** Use the inventory table from step 2.
+6. **Rip out the bypass in one commit.** Don't leave it dormant "in case we need it" — it will be re-enabled by accident.
+7. **Decision-doc the rip in `<project>/docs/<feature>-removal-decision.md`** so future-you (or a colleague) knows *why* the duplication is gone and what the migration looked like. Keep the doc project-side, not skill-side.
+
+**Worked example.** A project's `restart_btn_exec` (panelexec DAT) had a ~60-line block labeled `# SHADOW_FLOW_MARKER — autonomous intro-video pipeline (bypasses broken ticker)`. It scheduled three `run()` callbacks at hardcoded frame delays (`LOADING_FRAMES + VIDEO_FRAMES - 30`, etc.) to orchestrate an intro video and post-intro pose. In parallel, a frame-driven `executeDAT` (the "ticker") had been written to do the same job. Symptoms: 1-frame glitch between loading film and intro film, intro video looping then freezing on last frame, camera landing at wrong pose after fade.
+
+Probing the ticker in isolation revealed two tiny bugs: `chop['facing'].eval()` halting `onFrameStart` because the channel had been renamed (silently swallowed by TD's callback error handler — log grew until the missing-channel line, then stopped), and `_dim_t = min(1.0, _dim_el / dur)` not clamping negative `_dim_t` (stale `_dim_start_frame` from previous session → negative elapsed → eased value exploded to millions, dimming a material's alpha to zero permanently). One `try/except` and one `max(0, ...)` repaired the ticker. The bypass's hardcoded `delayFrames` constants were drifting 1 frame off the real video length, producing the loop glitch. Four lines of bypass-only behavior (`iv.par.cuepoint = 0`, `iv.par.play = True/False`, `_video_inner_fade = 1.0`) backported to the ticker's activation block. The 60-line bypass came out in one commit. The flow ran clean afterward.
+
+**Check first when:**
+
+- A DAT comment contains "bypass", "broken", "shadow", "parallel", "autonomous", "temporary" + a name
+- Multiple scripts in the same COMP/project write to the same storage flag
+- Symptoms include 1-frame timing glitches, intermittent state oscillation, or "it works once then breaks on the second trigger"
+- A project has accumulated patches over months and you're triaging "why is this so flaky"
