@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-06-17 — [project: RADON_TREE]
+
+- **The "bypasses broken X" anti-pattern in TD state machines**: When a TD project contains a script labeled "bypasses broken X" running in parallel with the intended system, the bypass almost never fixes the underlying problem — it adds two new bugs (race conditions writing to shared state, and timing drift from hardcoded `delayFrames` constants vs real durations). The real "broken X" is usually 1-3 small bugs (silent channel-rename halts, unclamped easing values blowing up from stale session storage). Documented detection cues, fix protocol with snapshot-first rollback step, and a worked example showing how a 60-line bypass came out after two `try/except` + `max(0, ...)` repairs to the original system.
+- Value for user: gives a clear playbook for spotting duplicated state-machine pipelines, restoring the intended system, and ripping out duplication without losing features — turns a "fix on fix on fix" cycle into a single rip-and-restore commit. Prevents future-you from adding a third parallel layer when symptoms recur.
+- File: `references/td-architecture.md` § "Parallel pipelines — the 'bypasses broken X' anti-pattern"
+- Type: [discovery]
+
 ### 💡 2026-06-08 — [project: skill-meta — Named Decision Rules index in SKILL.md]
 
 - **Added a flat "Named Decision Rules" index to `SKILL.md`** that points at the named X-vs-Y rules already living in `rules/`, `references/`, and `skills/`. The skill's strongest dimension is decision-rule density ("when to use X vs Y", trade-off tables, when-NOT-to-use guidance), but most of those rules were buried in long reference files — an agent picking between two approaches had to remember which file held the rule or lose it. This is a pure findability fix: no new content, no new claims, just a categorized index of existing entries with their exact source-section headings. The index lives directly after the Reference Lookup table because the two serve complementary roles — Reference Lookup answers "I'm working on X, what file do I read?", the new index answers "I need to pick X vs Y, where's the rule?" Categories used: Build-time & MCP workflow, Operator referencing, Python architecture (event/signal/expression), Cook control & performance, State & storage, Render & camera, POPs & scatter, Audio, Mac-specific, Components & 3rd-party.
