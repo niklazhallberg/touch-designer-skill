@@ -318,3 +318,43 @@ op('heavy_scene').allowCooking = True   # re-enable when relevant again
 - A whole COMP-worth of network is off-screen / inactive / staging and still eating cook budget
 - Bypassing single ops inside the COMP isn't enough — the heavy work is internal cook-graph resolution
 - Multi-scene apps where only one scene-COMP needs to cook at a time
+
+---
+
+## Storage gotchas captured from real work
+
+### Multi-source storage as a behavior gate — catch-22 by construction
+
+**Source:** RADON_TREE project, 2026-06-17 | **Confidence:** HIGH (own observation: introduced the bug, diagnosed it from user-reported symptom, fix verified by live test of the previously-blocked action)
+
+**Symptom.** A behavior gate built on a storage key (e.g. `net_speed = 0 if p.fetch('_some_flag', 0.0) > 0.5 else compute_speed`) blocks user actions intermittently or — worse — blocks user actions that were *supposed to be enabled* by those very actions. Pattern: "the user gases for a couple seconds, then can't gas anymore until they Respawn."
+
+**Root cause.** The storage key `_some_flag` has **two or more writers** across the project:
+- Writer A sets it for reason A (e.g. "user has engaged — show the sight reticle").
+- Writer B sets it for reason B (e.g. "block all camera motion during intro video").
+- The gate reader can only see the *value* (0 or 1), not the *reason* it was set. So a write from A will trip the gate that B was meant to control, even though A has nothing to do with B's domain.
+
+**Worked example.** A project ticker had had a "user-engagement latch" since early development: when the user sustained gas-swimming for 20 frames OR pinch-joystick for 3 frames, the ticker set `_user_engaged = 1.0` so the UI sight (reticle) would become visible. Months later, the intro-video freeze logic was added — needed to block camera motion during the intro reveal. The intro freeze ALSO set `_user_engaged = 1.0` to signal "block motion now". A new gate was added to the swim-integration math: `net_speed = 0 if _user_engaged > 0.5 else (speed - back_speed)`, intending it to mean "freeze during intro". Catch-22: as soon as the user gas-swam for 20+ frames in normal play, the old latch logic set `_user_engaged = 1.0` for its UI-visibility reason, the new gate read that as "freeze active", and the user's own input blocked the user's motion. The bug reported by the user: "I can't gas or back anymore."
+
+**Why this is structural in TD.** Storage keys on a COMP are *shared global state with no namespacing or owner-tagging*. `comp.fetch('foo')` returns the value but tells you nothing about who set it or why. The same value (`1.0`) can mean three different things depending on which `store()` last ran. There's no compiler or type system to catch overlap; only careful code review of every writer can.
+
+**Fix.**
+
+1. **One purpose per storage key.** Rename or split: if two purposes need different semantics, use two keys (`_user_engaged_for_ui_visibility` ≠ `_freeze_camera_during_intro`). Verbose but unambiguous.
+2. **For behavior gates, use a key with exactly ONE writer.** Pick a flag that only the relevant subsystem sets/clears. In the worked example, switching the gate from `_user_engaged` to `_intro_video_active` (set only by intro orchestrator, cleared at fade-start) resolved it — the gate now meant exactly "intro is currently active", not "the user has touched something".
+3. **If you must aggregate signals from multiple sources,** write to source-specific keys and OR them at the read site: `block = fetch('_intro_active') or fetch('_dialog_open') or fetch('_paused')`. Each writer retains a single owner; the aggregation is explicit and lives in one place.
+
+**Detection (audit cue).** When adding a gate condition based on an existing storage key:
+
+```bash
+grep -rn "store('keyname'" project_DATs/  # count writers per key
+```
+
+Any key with 2+ writers AND used as a gate elsewhere is a latent bug. Especially suspicious: keys whose name describes a *symptom* (`_engaged`, `_active`, `_busy`) rather than a *cause* (`_intro_playing`, `_dialog_open`, `_card_visible`). Symptom-named keys attract multiple writers because everyone has their own definition of "engaged".
+
+**Check first when:**
+
+- Adding a new gate based on an existing storage flag (always check writer count first)
+- A bug report sounds like "the user blocks themselves" or "works once then stops"
+- The storage key has a generic/symptom name (`_active`, `_engaged`, `_busy`, `_ready`)
+- A new feature needs to "block motion / interaction" — design with a single-writer flag from day 1

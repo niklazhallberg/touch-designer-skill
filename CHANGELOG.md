@@ -21,6 +21,13 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-17 — [project: RADON_TREE]
 
+- **Multi-source storage as a behavior gate — catch-22 by construction**: A TD storage key with two or more writers across the project cannot serve as a behavior gate elsewhere — each writer sets the value for its own semantic reason, but the gate reader can only see the value (0 or 1), not why. Writer A trips a gate that was meant to be controlled by writer B, and the user's own action ends up blocking the user's own action. Today: `_user_engaged` was set by both a UI-visibility latch (gas-streak ≥ 20) and an intro-freeze (block motion during video); a new `net_speed` gate based on it meant "the user gases for two seconds, then can't gas anymore". Documented the rename/split fix, the source-specific-keys + OR-aggregate fix, audit cue for symptom-named keys (`_active`/`_engaged`/`_busy`), and a worked example.
+- Value for user: prevents a class of "the user blocks themselves" / "works once then stops" bugs by treating storage keys as owned resources, not shared globals. Adds an audit step (grep `store('key'` to count writers before using a key as a gate). Names the failure mode so it's recognizable next time the symptom appears.
+- File: `references/td-gotchas.md` § "Storage gotchas captured from real work" — "Multi-source storage as a behavior gate — catch-22 by construction"
+- Type: [discovery]
+
+### 💡 2026-06-17 — [project: RADON_TREE]
+
 - **The "bypasses broken X" anti-pattern in TD state machines**: When a TD project contains a script labeled "bypasses broken X" running in parallel with the intended system, the bypass almost never fixes the underlying problem — it adds two new bugs (race conditions writing to shared state, and timing drift from hardcoded `delayFrames` constants vs real durations). The real "broken X" is usually 1-3 small bugs (silent channel-rename halts, unclamped easing values blowing up from stale session storage). Documented detection cues, fix protocol with snapshot-first rollback step, and a worked example showing how a 60-line bypass came out after two `try/except` + `max(0, ...)` repairs to the original system.
 - Value for user: gives a clear playbook for spotting duplicated state-machine pipelines, restoring the intended system, and ripping out duplication without losing features — turns a "fix on fix on fix" cycle into a single rip-and-restore commit. Prevents future-you from adding a third parallel layer when symptoms recur.
 - File: `references/td-architecture.md` § "Parallel pipelines — the 'bypasses broken X' anti-pattern"
