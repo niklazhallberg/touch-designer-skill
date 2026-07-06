@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="-apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="900" height="400" rx="16" fill="#12141a"/>
+
+  <text x="40" y="48" fill="#e8edf2" font-size="24" font-weight="700">How it works</text>
+  <text x="40" y="74" fill="#9aa4b2" font-size="14">You describe it — Claude builds it in your live TouchDesigner session.</text>
+
+  <path d="M 755 150 C 755 96, 450 96, 450 150" fill="none" stroke="#35d0ba" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrowT)"/>
+  <text x="602" y="92" fill="#35d0ba" font-size="12.5" text-anchor="middle">learnings &#8594; CHANGELOG (self-improving)</text>
+
+  <rect x="40" y="150" width="200" height="74" rx="12" fill="#1b1e26" stroke="#2b303b" stroke-width="1.5"/>
+  <text x="140" y="182" fill="#e8edf2" font-size="15" font-weight="600" text-anchor="middle">You</text>
+  <text x="140" y="204" fill="#9aa4b2" font-size="12" text-anchor="middle">plain language</text>
+
+  <line x1="240" y1="187" x2="336" y2="187" stroke="#4a515f" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="288" y="177" fill="#9aa4b2" font-size="11.5" text-anchor="middle">describe</text>
+
+  <rect x="340" y="150" width="220" height="74" rx="12" fill="#1b1e26" stroke="#35d0ba" stroke-width="1.8"/>
+  <text x="450" y="182" fill="#e8edf2" font-size="15" font-weight="600" text-anchor="middle">Claude Code + this skill</text>
+  <text x="450" y="204" fill="#9aa4b2" font-size="12" text-anchor="middle">recipes &#183; rules &#183; gotchas</text>
+
+  <line x1="560" y1="187" x2="646" y2="187" stroke="#4a515f" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="603" y="177" fill="#ff8c42" font-size="11.5" text-anchor="middle">Envoy MCP</text>
+  <text x="603" y="212" fill="#9aa4b2" font-size="10.5" text-anchor="middle">localhost:9870</text>
+
+  <rect x="650" y="150" width="210" height="74" rx="12" fill="#1b1e26" stroke="#ff8c42" stroke-width="1.8"/>
+  <text x="755" y="182" fill="#e8edf2" font-size="15" font-weight="600" text-anchor="middle">Live TouchDesigner</text>
+  <text x="755" y="204" fill="#9aa4b2" font-size="12" text-anchor="middle">operators built &amp; wired</text>
+
+  <line x1="450" y1="224" x2="450" y2="286" stroke="#4a515f" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="40" y="290" width="820" height="70" rx="12" fill="#16181f" stroke="#2b303b" stroke-width="1.5"/>
+  <text x="450" y="322" fill="#e8edf2" font-size="14" font-weight="600" text-anchor="middle">Embody externalizes the live network &#8594; git-diffable files</text>
+  <text x="450" y="344" fill="#9aa4b2" font-size="12.5" text-anchor="middle">.tdn &#183; .py &#183; .tox — readable, diffable, version-controlled</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#4a515f"/>
+    </marker>
+    <marker id="arrowT" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#35d0ba"/>
+    </marker>
+  </defs>
+</svg>
