@@ -19,6 +19,13 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
+### 💡 2026-09-26 — [project: skill-meta — safer default permissions in the project template]
+
+- **Removed unrestricted `Bash` from the default `templates/td-project/.claude/settings.local.json`.** The public template now pre-approves only the Envoy MCP tools (plus `WebFetch`), so shell commands prompt by default. The previous behaviour is kept as an explicit opt-in: `settings.trusted-fastpath.example.json` (identical plus `Bash`), copied over the project's `settings.local.json` by users who want the single-user fast path. README security note and setup instructions updated; `td-new` output says what is and isn't pre-approved.
+- Value for user: anyone cloning the skill gets a safe default; the fast path remains one documented `cp` away and stays machine-local (the file is git-ignored in scaffolded projects).
+- File: `templates/td-project/.claude/`, `README.md` § "Security note", `scripts/td-new`
+- Type: [structural]
+
 ### 💡 2026-06-17 — [project: tree-installation]
 
 - **The "bypasses broken X" anti-pattern in TD state machines**: When a TD project contains a script labeled "bypasses broken X" running in parallel with the intended system, the bypass almost never fixes the underlying problem — it adds two new bugs (race conditions writing to shared state, and timing drift from hardcoded `delayFrames` constants vs real durations). The real "broken X" is usually 1-3 small bugs (silent channel-rename halts, unclamped easing values blowing up from stale session storage). Documented detection cues, fix protocol with snapshot-first rollback step, and a worked example showing how a 60-line bypass came out after two `try/except` + `max(0, ...)` repairs to the original system.
@@ -203,7 +210,7 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-07 — [project: tree-installation + research-dossier dual-source]
 
-- **Scope MCP queries by path prefix / family / depth to prevent 40–80% context-window bloat**: Flat queries on `/project1` root return verbose JSON that consumes huge fractions of context. Default scoping: narrow path first, then `type=` filter, then `depth=` bound. For ≥3 operator reads, `read_tdn` (with default-omission) is 20–90× cheaper than per-tool walks. Dual-sourced: own observation (MCP timeouts after stacked verbose probes in RADON grid-debugging, restart_td required to recover) + external MCP-agent research (40–80% bloat metric).
+- **Scope MCP queries by path prefix / family / depth to prevent 40–80% context-window bloat**: Flat queries on `/project1` root return verbose JSON that consumes huge fractions of context. Default scoping: narrow path first, then `type=` filter, then `depth=` bound. For ≥3 operator reads, `read_tdn` (with default-omission) is 20–90× cheaper than per-tool walks. Dual-sourced: own observation (MCP timeouts after stacked verbose probes in tree-installation grid-debugging, restart_td required to recover) + external MCP-agent research (40–80% bloat metric).
 - Value for user: Keeps agent context budget available for actual work; prevents the "I lost track of what we were doing because tool responses ate the window" failure mode AND the secondary failure mode of MCP-side state breaking when probes are stacked verbosely.
 - File: `references/approach-patterns.md` § Scope MCP queries to prevent context-window bloat
 - Type: [discovery]
@@ -291,7 +298,7 @@ Ten generalizable discoveries from a session that added a procedural squirrel an
 
 Process learning: HARD TRIGGER section added to `SKILL.md` (always-loaded) so the in-flow rule survives across sessions without depending on the agent remembering to load `skill-growth-protocol.md`. Also added auto-memory feedback entry tied to "user has had to remind in past" — multi-layer redundancy on the same rule.
 
-### 💡 2026-06-01 — [project: Heatmap_Body_Tracker bootstrap]
+### 💡 2026-06-01 — [project: body-tracking project bootstrap]
 - **Embody.tox can be auto-fetched from GitHub releases; the rest of bootstrap can't be automated from a pre-existing claude session.** Two related findings landed today during a real new-project setup attempt.
   - **Closed TODO — direct asset URL pattern works** (no auth needed): `https://github.com/dylanroscover/Embody/releases/download/<tag>/Embody-<tag>.tox`. Asset filename includes the version (e.g. `Embody-v5.0.429.tox`); the intuitive `Embody.tox` 404s at every tag. Discovery method = brute-force probe of plausible filename variants at the known tag's download path. WebFetch on the releases page itself returns a "Loading…" placeholder because assets render via JS. `gh release view` needs auth.
   - **Automation boundary documented:** `td-new` + curl can scaffold folder, init git, and pre-fetch Embody.tox. Beyond that, the user must do 4 clicks in TD (Save As, drag-drop the .tox, set Aiclient=claude, ⌘S) because there's no MCP bridge until Embody is loaded — bootstrapping. Once those 4 clicks land, Embody starts Envoy and the agent can verify the rest via MCP.
@@ -324,7 +331,7 @@ Process learning: HARD TRIGGER section added to `SKILL.md` (always-loaded) so th
 - Type: [structural, consolidation]
 
 ### 🌱 2026-05-30 — [project: skill-meta]
-- **Phase 2 scaffolding landed**: 7 skills + 4 rules copied from `spin-the-spoon/.claude/` as canonical snapshots; growth-protocol v0.1 adapted from Lens Studio v0.6 (TD-flavored examples, single-user tone, kept all 3 generalization steps + CHANGELOG-prepend mandate); `scripts/session-sync.sh` written and made executable (NOT yet wired into `~/.claude/settings.json`); `references/project-bootstrap.md` written with verified working Embody config (v5.0.413, TD 2025.32820, AI Client=Claude Code, AI Project Root=Git root, Envoy port 9870); SKILL.md gained a tool-clusters section (OBSERVE / CREATE / MODIFY / DESTRUCTIVE / PROFILE / BRIDGE) with explicit cross-listing annotation.
+- **Phase 2 scaffolding landed**: 7 skills + 4 rules copied from an earlier TD project's `.claude/` as canonical snapshots; growth-protocol v0.1 adapted from Lens Studio v0.6 (TD-flavored examples, single-user tone, kept all 3 generalization steps + CHANGELOG-prepend mandate); `scripts/session-sync.sh` written and made executable (NOT yet wired into `~/.claude/settings.json`); `references/project-bootstrap.md` written with verified working Embody config (v5.0.413, TD 2025.32820, AI Client=Claude Code, AI Project Root=Git root, Envoy port 9870); SKILL.md gained a tool-clusters section (OBSERVE / CREATE / MODIFY / DESTRUCTIVE / PROFILE / BRIDGE) with explicit cross-listing annotation.
 - Value for user: from a new machine, three steps (clone repo, wire SessionStart hook, run `td-new <name>`) deliver a project ready for Embody-managed Claude integration. Tool-cluster grouping lets the agent reason about safety/approval once per cluster instead of restating per tool.
 - Files: `skills/*` (7), `rules/*` (4), `references/skill-growth-protocol.md`, `references/project-bootstrap.md`, `scripts/session-sync.sh`, `SKILL.md` § Tool clusters
 - Type: [structural]
@@ -348,7 +355,7 @@ Process learning: HARD TRIGGER section added to `SKILL.md` (always-loaded) so th
 - Type: [discovery]
 
 ### 🌱 2026-05-30 — [project: skill-meta]
-- **Repo seeded** from `spin-the-spoon/.claude/` after a 7-skill / 4-rule / 6-memory-file maturity threshold was crossed. Skill promoted from project-local to central single-user repo with self-growing structure: `references/`, `CHANGELOG.md`, growth-protocol, SessionStart sync hook, `td-new` scaffold script. Auto-memory left untouched as a complement until references are confirmed working.
+- **Repo seeded** from an earlier TD project's `.claude/` after a 7-skill / 4-rule / 6-memory-file maturity threshold was crossed. Skill promoted from project-local to central single-user repo with self-growing structure: `references/`, `CHANGELOG.md`, growth-protocol, SessionStart sync hook, `td-new` scaffold script. Auto-memory left untouched as a complement until references are confirmed working.
 - Value for user: TD knowledge is no longer project-locked; new projects inherit the same skill via a one-command scaffold (`td-new`); learnings sync across machines via git pull on session start.
 - File: this repo (initial commit)
 - Type: [structural]

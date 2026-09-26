@@ -106,9 +106,9 @@ The Envoy server exposes **~48 tools** as of Embody v5.0.413. Other sources drif
 
 ## `.N.toe` numbered files are TD's normal backup-on-save behavior, not separate state
 
-**Source:** agent-friction observation 2026-06-01 during Heatmap_Body_Tracker Phase 0 bootstrap (agent in fresh project session gated execution on `project.name == 'X.1.toe'` vs `'X.toe'` thinking the canonical file was different — both files were identical 3418 bytes / same timestamp) | **Confidence:** HIGH (TD save behavior is well-documented and the friction case was concrete + cost real session time)
+**Source:** agent-friction observation 2026-06-01 during a body-tracking project Phase 0 bootstrap (agent in fresh project session gated execution on `project.name == 'X.1.toe'` vs `'X.toe'` thinking the canonical file was different — both files were identical 3418 bytes / same timestamp) | **Confidence:** HIGH (TD save behavior is well-documented and the friction case was concrete + cost real session time)
 
-When you Save As to `Heatmap_Body_Tracker.toe`, TD writes the canonical file AND immediately starts actively editing the next numbered increment — `Heatmap_Body_Tracker.1.toe`, then `.2.toe`, etc., bumping on every subsequent ⌘S. The canonical un-numbered `.toe` and the latest numbered `.N.toe` reflect the **same** project state (within one save cycle). They are not competing files; there is no "real one" vs "backup one" distinction at the build-content level.
+When you Save As to `my-project.toe`, TD writes the canonical file AND immediately starts actively editing the next numbered increment — `a body-tracking project.1.toe`, then `.2.toe`, etc., bumping on every subsequent ⌘S. The canonical un-numbered `.toe` and the latest numbered `.N.toe` reflect the **same** project state (within one save cycle). They are not competing files; there is no "real one" vs "backup one" distinction at the build-content level.
 
 Symptom of agent confusion: `project.name` returns `Foo.1.toe` and the agent assumes "I should bail because the user wanted Foo.toe specifically." This is wrong. TD chose to edit `.1.toe`; the canonical `.toe` is updated alongside as a snapshot.
 

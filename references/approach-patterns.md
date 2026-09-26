@@ -144,7 +144,7 @@ find_children('/project1/GaussianSplatting', type='renderTOP')
 
 **Acceptance signal:** if a single MCP response is so long that it pushes earlier context out, the query was too broad. Re-issue with path/family/depth scoping. After scoping, the response should fit in a few hundred lines.
 
-**Failure-mode also observed in own production work:** Sequential verbose probes during the 2026-06-07 RADON grid-debugging session led to MCP timeouts on subsequent trivial calls (`absTime.frame`) — TD-side state didn't recover until `restart_td`. The external-research bloat metric matched the lived experience: when probes are verbose AND stacked, the agent loses both context budget AND the ability to query at all.
+**Failure-mode also observed in own production work:** Sequential verbose probes during the 2026-06-07 tree-installation grid-debugging session led to MCP timeouts on subsequent trivial calls (`absTime.frame`) — TD-side state didn't recover until `restart_td`. The external-research bloat metric matched the lived experience: when probes are verbose AND stacked, the agent loses both context budget AND the ability to query at all.
 
 **Cross-link:** `mcp-tools-reference/SKILL.md` § `read_tdn` for the preferred path when reading ≥3 operators; this rule is about scoping when `read_tdn` isn't the right shape.
 

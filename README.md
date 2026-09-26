@@ -55,7 +55,7 @@ cd my-project
 
 Then, in TouchDesigner: **Save As** → `my-project.toe`, drag in **Embody.tox** ([releases](https://github.com/dylanroscover/Embody/releases)), and set `Aiclient=claude`. Run `claude` in the project folder, and Claude can now drive the project through Envoy.
 
-`td-new` scaffolds the folder, initializes git with a sensible `.gitignore`, and drops in a per-project settings stub. See [`templates/td-project/`](templates/td-project/) for exactly what it copies.
+`td-new` scaffolds the folder, initializes git with a sensible `.gitignore`, and drops in a per-project `.claude/settings.local.json` that pre-approves the Envoy tools. Shell commands still ask for confirmation. See [`templates/td-project/`](templates/td-project/) for exactly what it copies, and the [security note](#security-note) for the optional fast path.
 
 ## What's in here
 
@@ -94,7 +94,18 @@ Then, in TouchDesigner: **Save As** → `my-project.toe`, drag in **Embody.tox**
 
 ## Security note
 
-The Envoy bridge listens on localhost without authentication, and `execute_python` runs unsandboxed inside the TouchDesigner process. The project template's [`settings.local.json`](templates/td-project/.claude/settings.local.json) pre-approves the Envoy tools and `Bash` so Claude can iterate without prompts. That is a deliberate speed trade-off for a single-user creative workstation. Remove `Bash` from the allowlist if you want a confirmation prompt on every shell command.
+The Envoy bridge listens on localhost without authentication, and `execute_python` runs unsandboxed inside the TouchDesigner process. Treat both accordingly.
+
+**Default:** the project template's [`settings.local.json`](templates/td-project/.claude/settings.local.json) pre-approves the Envoy MCP tools, including `execute_python`, because live network iteration is unusable without them. It does **not** pre-approve `Bash`, so every shell command asks first.
+
+**Opt-in fast path (trusted single-user workstation):** if you want Claude to also run shell commands without prompts, replace the project's settings with the fast-path example. It is identical except that it adds `Bash`:
+
+```sh
+cp ~/.claude/skills/touch-designer-skill/templates/td-project/.claude/settings.trusted-fastpath.example.json \
+  .claude/settings.local.json
+```
+
+`settings.local.json` is git-ignored in scaffolded projects, so this choice stays on your machine.
 
 ## Contributing
 

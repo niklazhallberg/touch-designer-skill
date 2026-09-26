@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
       "WebFetch",
       "mcp__envoy__batch_operations",
       "mcp__envoy__capture_top",

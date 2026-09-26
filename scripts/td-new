@@ -73,7 +73,7 @@ cp "${TEMPLATE_DIR}/.gitignore" "${TARGET}/.gitignore"
 ok "wrote .gitignore"
 
 cp "${TEMPLATE_DIR}/.claude/settings.local.json" "${TARGET}/.claude/settings.local.json"
-ok "wrote .claude/settings.local.json (canonical Envoy perms allowlist)"
+ok "wrote .claude/settings.local.json (Envoy tools pre-approved; Bash still prompts)"
 
 # ─── git init ─────────────────────────────────────────────────────────
 cd "${TARGET}"
