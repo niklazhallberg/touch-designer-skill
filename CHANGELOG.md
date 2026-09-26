@@ -19,7 +19,7 @@ but adapted for skill evolution rather than a software API.
 
 _New learnings registered from past or ongoing TouchDesigner projects._
 
-### 💡 2026-06-17 — [project: RADON_TREE]
+### 💡 2026-06-17 — [project: tree-installation]
 
 - **The "bypasses broken X" anti-pattern in TD state machines**: When a TD project contains a script labeled "bypasses broken X" running in parallel with the intended system, the bypass almost never fixes the underlying problem — it adds two new bugs (race conditions writing to shared state, and timing drift from hardcoded `delayFrames` constants vs real durations). The real "broken X" is usually 1-3 small bugs (silent channel-rename halts, unclamped easing values blowing up from stale session storage). Documented detection cues, fix protocol with snapshot-first rollback step, and a worked example showing how a 60-line bypass came out after two `try/except` + `max(0, ...)` repairs to the original system.
 - Value for user: gives a clear playbook for spotting duplicated state-machine pipelines, restoring the intended system, and ripping out duplication without losing features — turns a "fix on fix on fix" cycle into a single rip-and-restore commit. Prevents future-you from adding a third parallel layer when symptoms recur.
@@ -35,9 +35,9 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 💡 2026-06-08 — [project: skill-meta — housekeeping: project-spec content belongs in the project repo]
 
-- **Moved `references/radon-tree-pipeline.md` (681 lines of project-specific Fas 2 spec) out of the skill repo.** The skill is for cross-project knowledge — patterns, decision rules, gotchas, growth-protocol entries. Project-specific pipeline specs, current-phase plans, and baked-asset conventions belong in the project's own repo. Added a "What does NOT belong in this repo" section to `README.md` codifying the rule so the trap doesn't recur. The displaced content lives at `<project>/docs/radon-tree-pipeline.md` in the RADON_TREE project; the project's `CLAUDE.md` Reference Lookup row was redirected to the new location.
+- **Moved `references/<project>-pipeline.md` (681 lines of project-specific Fas 2 spec) out of the skill repo.** The skill is for cross-project knowledge — patterns, decision rules, gotchas, growth-protocol entries. Project-specific pipeline specs, current-phase plans, and baked-asset conventions belong in the project's own repo. Added a "What does NOT belong in this repo" section to `README.md` codifying the rule so the trap doesn't recur. The displaced content lives at `<project>/docs/<project>-pipeline.md` in the tree-installation project; the project's `CLAUDE.md` Reference Lookup row was redirected to the new location.
 - Value for user: prevents skill drift — the skill repo stays scannable and project-agnostic, and project specs stay with the project they belong to (where they're version-controlled alongside the `.toe` file and project rules).
-- File: `references/radon-tree-pipeline.md` (removed), `README.md` (new § "What does NOT belong in this repo")
+- File: `references/<project>-pipeline.md` (removed), `README.md` (new § "What does NOT belong in this repo")
 - Type: [convention]
 
 ### 💡 2026-06-07 — [project: skill-meta — TD Python workflow audit, A/C-cluster 10/10]
@@ -196,12 +196,12 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 
 ### 🌱 2026-06-07 — [project: skill-meta — repo structure]
 
-- **Add ROADMAP.md for forward-looking deferred work**: New top-level file tracking items deferred from preemptive import per the v0.3 protocol's "external source = MEDIUM" philosophy. Each entry has an explicit trigger condition (what real-world event should bring it back into scope). First item: Perform Mode / kiosk deployment gotchas, deferred until RADON_TREE (or another project) ships — so we can capture HIGH-confidence empirical gotchas instead of MEDIUM wiki distillation.
+- **Add ROADMAP.md for forward-looking deferred work**: New top-level file tracking items deferred from preemptive import per the v0.3 protocol's "external source = MEDIUM" philosophy. Each entry has an explicit trigger condition (what real-world event should bring it back into scope). First item: Perform Mode / kiosk deployment gotchas, deferred until tree-installation (or another project) ships — so we can capture HIGH-confidence empirical gotchas instead of MEDIUM wiki distillation.
 - Value for user: Makes deferred-but-not-forgotten work visible. Future maintainers (or future-self) can see WHY something wasn't imported AND what trigger should bring it back into scope, without losing the consideration to memory.
 - File: `ROADMAP.md` (new)
 - Type: [convention]
 
-### 💡 2026-06-07 — [project: RADON_TREE + research-dossier dual-source]
+### 💡 2026-06-07 — [project: tree-installation + research-dossier dual-source]
 
 - **Scope MCP queries by path prefix / family / depth to prevent 40–80% context-window bloat**: Flat queries on `/project1` root return verbose JSON that consumes huge fractions of context. Default scoping: narrow path first, then `type=` filter, then `depth=` bound. For ≥3 operator reads, `read_tdn` (with default-omission) is 20–90× cheaper than per-tool walks. Dual-sourced: own observation (MCP timeouts after stacked verbose probes in RADON grid-debugging, restart_td required to recover) + external MCP-agent research (40–80% bloat metric).
 - Value for user: Keeps agent context budget available for actual work; prevents the "I lost track of what we were doing because tool responses ate the window" failure mode AND the secondary failure mode of MCP-side state breaking when probes are stacked verbosely.
@@ -222,42 +222,42 @@ _New learnings registered from past or ongoing TouchDesigner projects._
 - File: `references/skill-growth-protocol.md` § Source confidence — own empiry vs external research (new section between Pre-ask filters and In-flow ask) + protocol-internal changelog bump to v0.3
 - Type: [convention]
 
-### 💡 2026-06-07 — [project: RADON_TREE]
+### 💡 2026-06-07 — [project: tree-installation]
 
 - **Inspect external geometry-source attributes before merging into an existing chain**: When merging a freshly loaded POP source (PLY, SOP-bridge, external bake) into an existing chain, attribute names + component counts + value scales must match the downstream consumer's expectations. Mismatches merge silently — no error, wrong output downstream. Recipe: probe `pointAttributes` + sample 1–5 values BEFORE wiring.
 - Value for user: Avoids "I merged the new source and now the colors are wrong / points are invisible / one branch dominates" debug sessions — gives a pre-merge inspection checklist and concrete mismatch examples (Color vs Cd, 0–1 float vs 0–255 byte, vec3 vs vec4, missing PointScale).
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
 - Type: [discovery]
 
-### 💡 2026-06-07 — [project: RADON_TREE]
+### 💡 2026-06-07 — [project: tree-installation]
 
 - **Single MAT downstream of a merge applies to all inputs — branch styling per-point upstream**: For per-branch alpha/color/blending in a merged POP chain, set per-point Color BEFORE the merge — the MAT honors per-point values when configured for it (`constantMAT.applypointcolor=True`). Adjusting MAT-level alpha dims ALL merged inputs uniformly.
 - Value for user: Resolves "I changed alpha on one branch and BOTH dimmed" confusion with a clean architecture pattern that doesn't require duplicating MATs.
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
 - Type: [discovery]
 
-### 💡 2026-06-07 — [project: RADON_TREE]
+### 💡 2026-06-07 — [project: tree-installation]
 
 - **noisePOP combineop='none' creates the output attribute; default 'add' silently fails if attr doesn't exist upstream**: Common trap when generating per-point random vectors — the default `combineop='add'` produces empty/zero output instead of a visible error. The fix is `combineop='none'` to create a fresh attribute.
 - Value for user: Saves debug-hours on "my noise op isn't outputting anything" — names the silent-failure mode and gives the correct config.
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
 - Type: [docs]
 
-### 💡 2026-06-07 — [project: RADON_TREE]
+### 💡 2026-06-07 — [project: tree-installation]
 
 - **mathcombinePOP binary ops are component-wise on multi-component attributes**: `min/max/add/mult` between two float3 attributes operates per-component — no separate combs needed. Empirically confirmed via stress test in source incident (max-amplitude inputs → ceiling held on Y, X and Z untouched via 1e6 sentinels).
 - Value for user: Removes guesswork when designing per-component clamps or ops on vector attributes — and shows the stress-test pattern to verify component-wise behavior on other ops before depending on it.
 - File: `references/pops.md` § POP rendering — gotchas captured from real builds
 - Type: [discovery]
 
-### 💡 2026-06-07 — [project: RADON_TREE]
+### 💡 2026-06-07 — [project: tree-installation]
 
 - **Topology change + large cook hangs TD — use bypass-during-refactor**: Creating, deleting, or rewiring ops downstream of high-density POP chains hangs TD silently (UI frozen, MCP timeouts on trivial probes, no crash, unsaved work lost). Defensive pattern: bypass new op first → configure → wire → unbypass last. Density-reduction is the fallback when bypass isn't applicable.
 - Value for user: Eliminates a class of "TD froze and I lost work" incidents — gives a concrete recipe for safe refactoring of large pipelines.
 - File: `references/td-gotchas.md` § TD stability gotchas captured from real work
 - Type: [discovery]
 
-### 💡 2026-06-07 — [project: RADON_TREE]
+### 💡 2026-06-07 — [project: tree-installation]
 
 - **Shared POP-chain with mode-switch — branch ALL noise sources, not just the obvious one**: When a chain serves multiple visual modes (particles/grid) via switchPOP, all per-point noise/jitter ops downstream must be mode-branched, not just the obviously-named one. Symptom of partial branching: motion stops but output is still statically broken — diagnostic fingerprint of a second source (typically per-point random with `t4d=0`) still active. Long-wavelength noise (period >> cell size) is safe both modes; empirically verified in source incident at period=0.05m (broke 0.04m cells) vs period=8m (preserved 50×50 grid).
 - Value for user: Saves hours when "I branched the noise but my grid is still torn apart" — gives a direct diagnostic ("motion stopped but still broken = static source still active") and a complete fix recipe with empirically-verified safe vs unsafe noise periods.
@@ -274,7 +274,7 @@ User shared a Perplexity-generated TouchDesigner architecture report and asked w
 
 **Process learning — primary-source verification beats AI-synthesis trust.** The Perplexity report was ~85% aligned with TD documentation and felt confidently authoritative, but the optimization-order claim was a confabulated structure not present in any Derivative source. Capturing it as-is would have polluted the skill with a plausible-sounding but wrong rule, and future agents would have followed it without verification. **Rule going forward:** when a research synthesis (AI search, third-party article, blog) proposes "principles" that look like they should be in primary docs, verify against the primary source before adopting. If the principle survives verification → adopt with primary source. If the synthesis can't be traced to primary → either wait for empirical confirmation OR mark explicitly as community-practice with a community source (e.g. II HQ tutorial, Derivative forum thread). Never adopt synthesis-as-principle.
 
-### 💡 2026-06-02 — [project: RADON_TREE — Squirrel + Roots procedural particle additions]
+### 💡 2026-06-02 — [project: tree-installation — Squirrel + Roots procedural particle additions]
 
 Ten generalizable discoveries from a session that added a procedural squirrel and L-system root system to a Gaussian-splat tree scene. All saved in-flow per skill-growth-protocol after the user pointed out batched capture had been happening (post-session ask, not in-flow). Added HARD TRIGGER section to `SKILL.md` and `skill-growth-protocol.md` + auto-memory feedback entry to prevent recurrence.
 
@@ -416,7 +416,7 @@ The 13 entries below are the original 2026-05-31 burst discoveries in full, move
 - → consolidated in references/glsl-patterns.md (2026-05-31)
 
 ### 💡 2026-05-31 — [project: skill-meta]
-- **Gaussian Splatting pipeline split documented** in `components/gaussian-splatting-mac.md` — creation (vid2scene cloud, used in production for `RADON_Tree.ply`; OpenSplat local-Mac via Metal `-DGPU_RUNTIME=MPS`, AGPLv3, to-verify) is a separate step from rendering (TDGS, Tim Gerritsen, atarilover123, etc.). Explicit "don't mix these up" rule: OpenSplat replaces vid2scene (creator-to-creator), NOT TDGS (which is a renderer). OpenSplat caveats noted: requires libtorch+OpenCV+Xcode compile from source AND COLMAP/OpenSfM pre-processed input — not plug-and-play.
+- **Gaussian Splatting pipeline split documented** in `components/gaussian-splatting-mac.md` — creation (vid2scene cloud, used in production for `tree.ply`; OpenSplat local-Mac via Metal `-DGPU_RUNTIME=MPS`, AGPLv3, to-verify) is a separate step from rendering (TDGS, Tim Gerritsen, atarilover123, etc.). Explicit "don't mix these up" rule: OpenSplat replaces vid2scene (creator-to-creator), NOT TDGS (which is a renderer). OpenSplat caveats noted: requires libtorch+OpenCV+Xcode compile from source AND COLMAP/OpenSfM pre-processed input — not plug-and-play.
 - Value for user: when a user asks "how do I get a Gaussian splat into TD", the agent now knows there are two pipeline steps and recommends the right tool for each layer instead of conflating creators with renderers.
 - File: `references/components/gaussian-splatting-mac.md` § "Pipeline split — splat CREATION vs splat RENDERING" (new section, top of file)
 - Type: [discovery]

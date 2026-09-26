@@ -44,7 +44,7 @@ Example:
 
 Checklist BEFORE you write to disk:
 
-❌ Remove: client names, project names, specific asset filenames (`RADON_Tree.ply`, etc.)
+❌ Remove: client names, project names, specific asset filenames (`hero_asset.ply`, etc.)
 ❌ Remove: exact project measurements that only apply to this case (Ty=-0.6 for this tree)
 ❌ Remove: internal project paths (`/project1/GaussianSplatting/...`) — replace with placeholders or general patterns
 ❌ Remove: dates and deadlines tied to a specific delivery
@@ -66,7 +66,7 @@ If no → rewrite until the answer is yes.
 
 **BEFORE** (project-specific, do NOT commit):
 
-> "For the RADON tree splat, Tim's vertex shader at `/project1/GaussianSplatting/GaussianSplat/glslSplat_vertex` produced red and blue corrupt colors on my M1 Pro. I patched it by adding `color.rgb = vec3(1.0);` after the texelFetch."
+> "For the tree-installation splat, Tim's vertex shader at `/project1/GaussianSplatting/GaussianSplat/glslSplat_vertex` produced red and blue corrupt colors on my M1 Pro. I patched it by adding `color.rgb = vec3(1.0);` after the texelFetch."
 
 **AFTER** (generalizable, ready to commit):
 

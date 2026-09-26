@@ -51,7 +51,7 @@ When 3+ production patterns have been captured here through the growth protocol,
 
 ### `glslPOP.destroy()` does NOT fully release GPU state — restart_td if other shaders misbehave after
 
-**Source:** RADON_TREE Roots pulse-shader experiment, 2026-06-02 | **Confidence:** HIGH (verified by bypass-test + restart_td)
+**Source:** tree-installation Roots pulse-shader experiment, 2026-06-02 | **Confidence:** HIGH (verified by bypass-test + restart_td)
 
 After creating a `glslPOP` with compute shader code, destroying it via `op.destroy()` + destroying its docked DATs leaves the TD-side state clean (no leftover ops, no stale references in audits). **But** GPU-side state — compiled shader programs, SSBO bindings, uniform allocations — is not guaranteed to release. The symptom that surfaces this:
 

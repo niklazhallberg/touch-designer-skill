@@ -10,7 +10,7 @@
 
 You want a TD scene where a hand-tracking source drives one or more camera parameters in real time. Concrete examples:
 
-- Vertical hand motion → camera Y (the radon-tree mapping from 2026-05-31)
+- Vertical hand motion → camera Y (the tree-installation mapping from 2026-05-31)
 - Pinch distance → camera dolly / `Pivotdistance`
 - Hand tilt → camera pitch / look-at
 - Two-hand spread → orthowidth / FOV
@@ -132,7 +132,7 @@ Sources tested or plausible: MediaPipe hands, Leap Motion (via tdleap), OAK-D de
 | Thumb ↔ middle | `dist(lm[4], lm[12])` | Secondary continuous control independent of main pinch |
 | Index ↔ middle | `dist(lm[8], lm[12])` | "Two finger spread" — natural for scale gestures |
 | All-finger curl | average of MCP-to-tip Y-distances | Fist-clench → trigger / threshold |
-| Hand tilt | `atan2(lm[9].y − lm[0].y, lm[9].z − lm[0].z)` | Camera pitch (Stage 2 in radon-tree plan) |
+| Hand tilt | `atan2(lm[9].y − lm[0].y, lm[9].z − lm[0].z)` | Camera pitch (Stage 2 in tree-installation plan) |
 
 For each new channel, extend the upstream parser (e.g. `hand_parser` scriptCHOP) — additions-only, never edit existing channels. Then add a parallel `select → math → gate → smooth → null → camera_param` chain in the camera-control COMP.
 
@@ -158,11 +158,11 @@ Mitigations:
 2. **Expose a manual `Swap` toggle.** Single click recovery when MediaPipe gets confused. Cheap, predictable.
 3. **Calibration session at startup.** First detection determines mapping for the session; manual override available.
 
-Today's radon-tree build uses Source-suffix routing (hand_a vs hand_b). The handedness flags are emitted but not consumed by camera_control. Adding handedness-locked routing is a future polish.
+Today's tree-installation build uses Source-suffix routing (hand_a vs hand_b). The handedness flags are emitted but not consumed by camera_control. Adding handedness-locked routing is a future polish.
 
 ---
 
-## Empirical tuning notes (from the radon-tree build)
+## Empirical tuning notes (from the tree-installation build)
 
 | Setting | Final value | Why |
 |---|---|---|
@@ -188,7 +188,7 @@ Today's radon-tree build uses Source-suffix routing (hand_a vs hand_b). The hand
 
 ## Companion artifact
 
-`templates/components/hand-driven-camera-y.tdn` — exported from radon-tree project 2026-06-01, refactored for portability before commit. Verified clean of absolute paths in operational fields; external dependencies parameterized via the `Handsource` custom param.
+`templates/components/hand-driven-camera-y.tdn` — exported from tree-installation project 2026-06-01, refactored for portability before commit. Verified clean of absolute paths in operational fields; external dependencies parameterized via the `Handsource` custom param.
 
 **Re-import workflow:**
 
@@ -204,6 +204,6 @@ Today's radon-tree build uses Source-suffix routing (hand_a vs hand_b). The hand
 
 ## Provenance
 
-- **Originated:** 2026-05-31 production session (`hand_control_BANG_rfsu` → renamed `hand_control_radon_tree` 2026-06-01)
+- **Originated:** 2026-05-31 production session (client-specific component, renamed and generalized 2026-06-01)
 - **Verified:** rendered tree responds to vertical hand motion; camera centers on hand absence; zoom-via-mirror-binding preserved across camera swap
-- **Confidence:** HIGH for the architecture (5-stage chain, two-camera split, mirror-binding rule). MEDIUM for the empirical tuning numbers — they're radon-tree-scene-specific; the calibration framework generalizes but the constants don't.
+- **Confidence:** HIGH for the architecture (5-stage chain, two-camera split, mirror-binding rule). MEDIUM for the empirical tuning numbers — they're tree-installation-scene-specific; the calibration framework generalizes but the constants don't.

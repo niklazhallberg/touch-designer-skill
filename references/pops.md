@@ -106,7 +106,7 @@ Official. Reach for these first when you need points to exist.
 - **Pattern POP** — parameter-driven patterned point distributions (used in Vernetti's senior point-cloud patches)
 - **Sprinkle POP** — random scatter generator
 - **Polygonize POP** — polygonal output
-- **File In POP** — load `.ply` and similar point-data files (this is how `RADON_Tree.ply` enters TD when a POP-based splat pipeline is used; cross-link `components/gaussian-splatting-mac.md`)
+- **File In POP** — load `.ply` and similar point-data files (this is how `tree.ply` enters TD when a POP-based splat pipeline is used; cross-link `components/gaussian-splatting-mac.md`)
 - **Point File In POP** — point-specific file loading
 - **Alembic In POP** — load Alembic caches (added 2025.31310)
 - **Import Select POP** — select from imported data

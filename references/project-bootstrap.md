@@ -95,7 +95,7 @@ Large third-party TD components (mediapipe-touchdesigner is the canonical exampl
 
 **Backlog — td-new enhancement (not built today):**
 
-`scripts/td-new` could accept a `--with-mediapipe` (or `--with-component <name>`) flag that probes the cache locations above and either symlinks/copies the cached version into the new project, or reaches for download as last resort. Trigger for building: ≥2 instances of a new project re-downloading a component that was already cached locally. Today is instance 1 (Heatmap_Body_Tracker re-downloading what RADON_TREE-era setup already had); next occurrence promotes this from backlog to build.
+`scripts/td-new` could accept a `--with-mediapipe` (or `--with-component <name>`) flag that probes the cache locations above and either symlinks/copies the cached version into the new project, or reaches for download as last resort. Trigger for building: ≥2 instances of a new project re-downloading a component that was already cached locally. Today is instance 1 (Heatmap_Body_Tracker re-downloading what tree-installation-era setup already had); next occurrence promotes this from backlog to build.
 
 ---
 

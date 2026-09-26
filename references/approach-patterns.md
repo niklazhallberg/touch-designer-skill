@@ -120,7 +120,7 @@ The implementation cost of "check first" is one read; the cost of redoing work w
 
 ## Scope MCP queries to prevent context-window bloat
 
-**Source:** RADON_TREE shared particles/grid pipeline, 2026-06-07 (own observation — MCP timeouts after multiple verbose probes during a grid-debugging session; restart_td required to recover) + [Reddit r/AI_Agents discussion on tool-response bloat](https://www.reddit.com/r/AI_Agents/comments/1rlucg7/) + general MCP-agent research, late 2025 (corroborating reference) | **Confidence:** HIGH (dual-sourced)
+**Source:** tree-installation shared particles/grid pipeline, 2026-06-07 (own observation — MCP timeouts after multiple verbose probes during a grid-debugging session; restart_td required to recover) + [Reddit r/AI_Agents discussion on tool-response bloat](https://www.reddit.com/r/AI_Agents/comments/1rlucg7/) + general MCP-agent research, late 2025 (corroborating reference) | **Confidence:** HIGH (dual-sourced)
 
 MCP tool responses can consume **40–80% of an agent's context window** when used without query scoping. For TD specifically, the failure mode is calling `query_network` or `find_children` on a root path like `/project1` flat — the JSON response from a large network can run thousands of lines per call, and stacking a few of those quickly fills context.
 
