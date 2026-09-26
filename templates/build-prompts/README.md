@@ -47,8 +47,8 @@ A build prompt lands in this directory when:
 2. The structure (phases, success criteria, empirical-question list, pre-answer header) is generic enough that a second project would lift it.
 3. There's a one-line description of when to use this template vs. write from scratch.
 
-If a prompt is highly specific to its project (e.g. Heatmap_Body_Tracker's thermal LUT details), it stays in that project's `prompts/` folder and doesn't promote. Only the **structural shell** generalizes.
+If a prompt is highly specific to its project (e.g. a body-tracking heatmap's thermal LUT details), it stays in that project's `prompts/` folder and doesn't promote. Only the **structural shell** generalizes.
 
 ## Current templates
 
-_(empty — first templates promote when a second project re-uses the Heatmap_Body_Tracker structure.)_
+_(empty — first templates promote when a second project re-uses the body-tracking project's structure.)_

@@ -1,77 +1,49 @@
 # TouchDesigner Skill for Claude Code
 
-<!-- TODO: add badges once decisions are made. Example:
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Status: active](https://img.shields.io/badge/status-active-brightgreen)
+![Version 0.2.0](https://img.shields.io/badge/version-0.2.0-blue)
 ![Platform: Apple Silicon](https://img.shields.io/badge/platform-Apple%20Silicon-black)
--->
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-A **self-improving Claude Code skill** that lets Claude build, modify, and debug
-**TouchDesigner** projects on Apple Silicon — driving TouchDesigner live through the
-**Embody + Envoy MCP** bridge, and getting a little sharper after every project.
+A **self-improving Claude Code skill** that lets Claude build, modify, and debug **[TouchDesigner](https://derivative.ca)** projects on Apple Silicon. It drives TouchDesigner live through the **Embody + Envoy MCP** bridge and gets a little sharper after every project.
 
-<!-- TODO: add a short demo GIF or screenshot here. For a visual tool like
-TouchDesigner this is the single highest-impact addition — a 5-10s clip of Claude
-creating/wiring operators says more than three paragraphs. Drop it in docs/ and link:
-![Demo](docs/demo.gif) -->
+> **New to the terms?** TouchDesigner is a node-based environment for real-time graphics and interactive installations. A Claude Code *skill* is a knowledge pack that Claude loads when a task calls for it. *MCP* is the protocol that lets Claude call tools, in this case tools that create, wire, and inspect TouchDesigner operators in a running project.
 
 ## What this is
 
-TouchDesigner is a node-based visual programming environment for real-time
-graphics and installations. This repo is a Claude Code *skill*: a bundle of
-recipes, rules, and hard-won gotchas that Claude loads when it detects a
-TouchDesigner context (a `.toe` file, an `.embody/` folder, or the phrase
-"TouchDesigner"). With the Embody component loaded inside a `.toe` project,
-Claude can inspect the network, create and wire operators, run Python, and debug
-issues — instead of you doing every click by hand.
+This repo holds the recipes, rules, and hard-won gotchas that Claude loads when it detects a TouchDesigner context: a `.toe` file, an `.embody/` folder, or the word "TouchDesigner". With the Embody component loaded in a project, Claude can inspect the network, create and wire operators, run Python, and debug issues, instead of you doing every click by hand.
 
-It was built around one artist's workflow, but everything here is written to be
-project-agnostic: patterns, decision rules ("when to use X vs Y"), and gotchas
-that generalize across TouchDesigner projects. If you work in TD on a Mac, you
-should be able to clone it and adapt it to your own setup.
+It grew out of one artist's production work, but everything in it is written to be project-agnostic: patterns, decision rules ("when to use X vs Y"), and gotchas that generalize across TouchDesigner projects.
+
+**What it knows today:** 7 workflow skills, 4 rule sets, 20 reference banks, and a flat index of about 50 named decision rules. Coverage includes POPs, GLSL, Python architecture, audio-reactive systems, projection mapping, MediaPipe hand tracking, Gaussian splatting on Mac, and StreamDiffusion. The bulk of it was captured from real sessions, and each entry is tagged with how it was verified.
 
 ## How it's self-improving
 
-The "self-improving" part is a concrete, documented mechanism — not autonomous
-model training. During real project sessions, Claude captures generalizable
-discoveries *in-flow* and appends them to the knowledge banks, following the
-**skill-growth protocol** (see [`references/skill-growth-protocol.md`](references/skill-growth-protocol.md)):
+"Self-improving" is a concrete, documented mechanism, not model training. During real sessions, Claude captures generalizable discoveries *in flow*, following the [skill-growth protocol](references/skill-growth-protocol.md):
 
-- New learnings are written into `references/` and logged in
-  [`CHANGELOG.md`](CHANGELOG.md), which acts as the skill's biography.
-- Each learning is tagged by evidence strength — own empirical testing (trusted),
-  external source (marked "verify before relying"), or both (corroborated).
-- A `SessionStart` hook (`scripts/session-sync.sh`) pulls the latest banks and
-  announces new learnings at the start of a session, so improvements travel
-  across machines via git.
-
-The net effect: the skill accumulates TouchDesigner knowledge over time instead
-of re-deriving the same gotchas every project.
+1. **Trigger:** something non-trivial was solved, for example several probe→fix cycles, reality contradicting the model, or a non-obvious workaround.
+2. **Generalize:** strip project names and one-off numbers. If it can't be stated generically, it stays in the project.
+3. **Gate:** three silent checks. Was both the failure and the fix observed? Does the rule fit in one sentence? Was it genuinely new?
+4. **Ask:** the human approves before anything is written.
+5. **Record:** the entry goes into `references/` and is logged in [`CHANGELOG.md`](CHANGELOG.md), tagged by evidence strength: own testing (trusted), external source ("verify before relying"), or both.
+6. **Sync:** a `SessionStart` hook (`scripts/session-sync.sh`) pulls the latest knowledge and announces new learnings, so improvements travel across machines via git.
 
 ## Requirements
 
-- **macOS on Apple Silicon** (M-series). Several patterns here are Mac-specific,
-  and some TouchDesigner features (e.g. POPs) crash on Intel/AMD Macs.
-- **TouchDesigner 2025.x** <!-- TODO: confirm the minimum build you want to state,
-  e.g. 2025.32820 — POPs require a 2025 build. -->
-- **[Claude Code](https://docs.claude.com/en/docs/claude-code)**
-- **Embody** — the TouchDesigner component (`.tox`) that hosts the Claude
-  integration inside a project and starts the Envoy MCP bridge.
-  <!-- TODO: confirm and link the official source you rely on, e.g.
-  https://github.com/dylanroscover/Embody/releases -->
-- **Envoy MCP bridge** — ships with Embody; runs on localhost
-  <!-- TODO: confirm default port, referenced as 9870 in the changelog -->.
-  Note: the bridge is localhost-only and unauthenticated, and `execute_python`
-  runs unsandboxed as the TouchDesigner process — treat it accordingly.
+- **macOS on Apple Silicon** (M-series). Several patterns are Mac-specific, and some TouchDesigner features (e.g. POPs) crash on Intel/AMD Macs.
+- **TouchDesigner 2025.32820** or later
+- **[Claude Code](https://claude.com/claude-code)**
+- **[Embody](https://github.com/dylanroscover/Embody) v5.0.413+**: a TouchDesigner component (`.tox`) that externalizes the network to git-trackable files and hosts the Claude integration
+- **Envoy MCP bridge**: ships with Embody and runs on `localhost:9870`
 
-## Install on a new machine
+## Install
 
 ```sh
 git clone https://github.com/niklazhallberg/touch-designer-skill \
   ~/.claude/skills/touch-designer-skill
 ```
 
-Then add the `SessionStart` hook to `~/.claude/settings.json` — see the header of
-[`scripts/session-sync.sh`](scripts/session-sync.sh) for the exact JSON snippet.
+Optional: add the `SessionStart` hook to `~/.claude/settings.json` to auto-sync learnings. The exact JSON snippet is in the header of [`scripts/session-sync.sh`](scripts/session-sync.sh).
 
 ## Start a new TouchDesigner project
 
@@ -81,78 +53,69 @@ cd ~/Projects/
 cd my-project
 ```
 
-Then, in TouchDesigner: **Save As** → `my-project.toe` → drag in **Embody.tox** →
-set `Aiclient=claude`. Now run `claude` in the project folder and Claude can drive
-the project through Embody/Envoy.
+Then, in TouchDesigner: **Save As** → `my-project.toe`, drag in **Embody.tox** ([releases](https://github.com/dylanroscover/Embody/releases)), and set `Aiclient=claude`. Run `claude` in the project folder, and Claude can now drive the project through Envoy.
 
-`td-new` scaffolds the folder, initializes git with a sensible `.gitignore`, and
-drops in a per-project settings stub — see [`templates/td-project/`](templates/td-project/)
-for exactly what it copies.
+`td-new` scaffolds the folder, initializes git with a sensible `.gitignore`, and drops in a per-project `.claude/settings.local.json` that pre-approves the Envoy tools. Shell commands still ask for confirmation. See [`templates/td-project/`](templates/td-project/) for exactly what it copies, and the [security note](#security-note) for the optional fast path.
 
 ## What's in here
 
-- **`SKILL.md`** — the front door; loaded when Claude detects a TD context.
-- **`skills/`** — workflow recipes, loaded on demand (`create-operator`,
-  `debug-operator`, `manage-annotations`, …).
-- **`rules/`** — operational rules (parameter design, network layout, TD-Python
-  gotchas, MCP safety).
-- **`references/`** — knowledge banks loaded on trigger: the skill-growth
-  protocol, TD-specific gotchas, patterns, and per-component notes.
-- **`scripts/td-new`** — scaffolds a new TD project in seconds.
-- **`scripts/session-sync.sh`** — the `SessionStart` hook (pull latest, announce
-  new learnings, silent on failure).
-- **`templates/td-project/`** — what `td-new` copies into a fresh project.
-- **`CHANGELOG.md`** — the biography of what the skill has learned over time.
-- **`ROADMAP.md`** — deferred work, each item with the trigger that brings it
-  back into scope.
+| Path | Contents |
+|---|---|
+| [`SKILL.md`](SKILL.md) | The front door: triggers, mandatory reads, reference lookup table, named decision-rule index |
+| [`skills/`](skills/) | Workflow recipes loaded on demand: `create-operator`, `debug-operator`, `externalize-operator`, `create-extension`, `manage-annotations`, plus MCP-tool and TD-API references |
+| [`rules/`](rules/) | Operational rules: parameter design, network layout, TD-Python, MCP safety |
+| [`references/`](references/) | Knowledge banks: gotchas, patterns, per-component notes, the growth protocol |
+| [`scripts/`](scripts/) | `td-new` (project scaffold) and `session-sync.sh` (SessionStart hook) |
+| [`templates/`](templates/) | The starter project shell, plus portable components (`.tdn`) |
+| [`CHANGELOG.md`](CHANGELOG.md) | The skill's learning log: every captured discovery, with source and confidence |
+| [`ROADMAP.md`](ROADMAP.md) | Deferred work, each item with the real-world trigger that brings it back into scope |
 
-## How it works — repo vs. project
+## Design decisions
 
-The skill (this repo) holds *cross-project* knowledge. Each TouchDesigner project
-keeps its own project-specific files, most of them auto-generated by Embody.
+- **Central knowledge, per-project state.** Cross-project knowledge lives in this repo. Everything project-specific (the `.toe`, Embody's generated `CLAUDE.md` and `.claude/` files, runtime caches) lives with the project.
 
-| Lives in this repo (central, user-level)       | Lives per TD project (auto-generated by Embody)                               |
-| ---------------------------------------------- | ----------------------------------------------------------------------------- |
-| `SKILL.md`, `skills/`, `rules/`, `references/` | `<project>.toe`, `.mcp.json`, `.embody/envoy-bridge.py`, `.embody/envoy.json` |
-| `CHANGELOG.md` (biography)                      | `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.claude/rules/` (Embody regen)  |
-| `scripts/td-new`, `scripts/session-sync.sh`    | `.venv/`, `Backup/`, `TDImportCache/`, `logs/` (runtime)                      |
-| `templates/td-project/` (the starter shell)    | `.claude/settings.local.json` (per-machine permissions allowlist)             |
+  | Lives in this repo (user-level) | Lives per TD project (mostly generated by Embody) |
+  |---|---|
+  | `SKILL.md`, `skills/`, `rules/`, `references/` | `<project>.toe`, `.mcp.json`, `.embody/` |
+  | `CHANGELOG.md` (learning log) | `CLAUDE.md`, `AGENTS.md`, `.claude/skills/`, `.claude/rules/` |
+  | `scripts/`, `templates/` | `.venv/`, `Backup/`, `TDImportCache/`, `logs/` |
 
-See [`references/project-bootstrap.md`](references/project-bootstrap.md) for the
-full split and Embody sourcing.
+- **Explicit conflict rule.** When a project-local file generated by Embody disagrees with the central skill, central wins for *additive* knowledge and project-local wins for *workflow*, because Embody knows the project's tool versions. Conflicts are surfaced, never silently averaged.
+- **Evidence over volume.** Knowledge is captured when it's earned in production, not bulk-imported from docs. [`ROADMAP.md`](ROADMAP.md) deliberately defers topics until a real project triggers them, so entries can be written with high confidence.
+- **Findability as a feature.** Decision rules are buried in long reference files by nature, so `SKILL.md` keeps a flat index of about 50 "X vs Y" rules that points to their source sections.
+- **No project content.** Pipeline specs, phase plans, and anything that only fits one project belong in that project's repo. If an entry can't be stated without a project name or scene-specific numbers, it isn't skill content.
 
-## What does NOT belong in this repo
+## Scope & limitations
 
-Project-specific pipeline specs, current-phase plans, baked-asset conventions, and
-anything that only generalizes to one TD project belong in **that project's own
-repo** (`docs/` or `.claude/notes/`), not here. The skill is for cross-project
-knowledge — patterns, decision rules, gotchas, growth-protocol entries. If an
-entry can't be stated without a project name or scene-specific numbers, it's
-project content, not skill content.
+- **Apple Silicon only.** The skill has not been tested on Windows or Intel Macs, and several entries are Mac-specific by design.
+- **Single-user workflow.** The growth protocol assumes one maintainer approving entries. A team-scaling path is noted but not built.
+- **Tied to Embody/Envoy.** Without the bridge, the skill is still useful as reference material, but Claude can't act on the live network.
+- Knowledge reflects TouchDesigner 2025.x. Entries from external sources are marked "verify before relying".
 
-## Roadmap
+## Security note
 
-Forward-looking and deferred work lives in [`ROADMAP.md`](ROADMAP.md), each item
-tagged with the real-world trigger that should bring it back into scope.
+The Envoy bridge listens on localhost without authentication, and `execute_python` runs unsandboxed inside the TouchDesigner process. Treat both accordingly.
+
+**Default:** the project template's [`settings.local.json`](templates/td-project/.claude/settings.local.json) pre-approves the Envoy MCP tools, including `execute_python`, because live network iteration is unusable without them. It does **not** pre-approve `Bash`, so every shell command asks first.
+
+**Opt-in fast path (trusted single-user workstation):** if you want Claude to also run shell commands without prompts, replace the project's settings with the fast-path example. It is identical except that it adds `Bash`:
+
+```sh
+cp ~/.claude/skills/touch-designer-skill/templates/td-project/.claude/settings.trusted-fastpath.example.json \
+  .claude/settings.local.json
+```
+
+`settings.local.json` is git-ignored in scaffolded projects, so this choice stays on your machine.
 
 ## Contributing
 
-<!-- TODO: decide how open you want this. A minimal version: -->
-Issues and pull requests are welcome. The knowledge banks follow the
-[skill-growth protocol](references/skill-growth-protocol.md) — if you add a
-learning, tag it by evidence strength (own testing vs. external source) and log it
-in `CHANGELOG.md` so its provenance stays clear.
+Issues and pull requests are welcome. The knowledge banks follow the [skill-growth protocol](references/skill-growth-protocol.md). If you add a learning, tag it by evidence strength (own testing vs. external source) and log it in `CHANGELOG.md` so its provenance stays clear.
 
 ## License
 
-<!-- TODO: add a LICENSE file and update this line. MIT is the common choice for
-tools like this. Without a license, the code is "all rights reserved" and others
-can't legally use it. -->
-Released under the MIT License — see [`LICENSE`](LICENSE).
+[MIT](LICENSE) © Niklaz Hallberg · [niklaz.a.hallberg@gmail.com](mailto:niklaz.a.hallberg@gmail.com)
 
 ## Acknowledgments
 
-- [Derivative](https://derivative.ca) — TouchDesigner.
-- **Embody** and the **Envoy** MCP bridge — the components that make live
-  Claude ↔ TouchDesigner control possible.
-  <!-- TODO: credit the author/link you rely on. -->
+- [Derivative](https://derivative.ca), makers of TouchDesigner.
+- [Embody](https://github.com/dylanroscover/Embody) and its Envoy MCP bridge by [Dylan Roscover](https://github.com/dylanroscover), the components that make live Claude ↔ TouchDesigner control possible.

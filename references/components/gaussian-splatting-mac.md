@@ -17,7 +17,7 @@ The components listed below (Tim Gerritsen, atarilover123, TDGS, yeataro, POP-ba
 
 ### Creation tools
 
-- **vid2scene.com** — cloud service, free tier, one-click upload-and-train. **Verified by user in production** (used to create `RADON_Tree.ply` for the splat-tree work, May 2026). Licensing/pro-tier terms on their site; check before commercial use.
+- **vid2scene.com** — cloud service, free tier, one-click upload-and-train. **Verified by user in production** (used to create `tree.ply` for the splat-tree work, May 2026). Licensing/pro-tier terms on their site; check before commercial use.
 - **OpenSplat** ([github.com/pierotofy/OpenSplat](https://github.com/pierotofy/OpenSplat)) — open source, AGPLv3, runs locally on Mac via Metal (`-DGPU_RUNTIME=MPS`). Commercial use permitted under AGPL terms. **Status: to verify** — not personally tested by the user. Practical caveats:
   - Requires compiling from source: libtorch + OpenCV + Xcode toolchain
   - Requires already-processed input (COLMAP or OpenSfM output) — not plug-and-play from raw video/photos
@@ -67,7 +67,7 @@ The components listed below (Tim Gerritsen, atarilover123, TDGS, yeataro, POP-ba
 
 **Reported** community fork of Tim Gerritsen's `.tox` with a 16-sampler-reduced GLSL shader, claimed Mac+PC universal. Reported additions as of November 2025: portrait-mode fix, camera automation, noise effects.
 
-**Existence and behavior have NOT been verified by the user.** The only sources are a YouTube walkthrough and a Derivative forum reference — neither the agent nor the user has cloned the repo, opened the `.tox` in TD, or rendered a `.ply` with it. Before recommending it as the default Mac path, verify (1) the GitHub repo actually exists and is reachable, (2) the `.tox` opens in the user's TD build (2025.32820+), and (3) it renders the user's `RADON_Tree.ply` with correct color on M1 Pro.
+**Existence and behavior have NOT been verified by the user.** The only sources are a YouTube walkthrough and a Derivative forum reference — neither the agent nor the user has cloned the repo, opened the `.tox` in TD, or rendered a `.ply` with it. Before recommending it as the default Mac path, verify (1) the GitHub repo actually exists and is reachable, (2) the `.tox` opens in the user's TD build (2025.32820+), and (3) it renders the user's `tree.ply` with correct color on M1 Pro.
 
 **Status: to verify in production (fork existence not confirmed).** Current production work uses the original Tim component with the in-shader white-force workaround. Don't substitute this fork without the verification steps above.
 
@@ -154,7 +154,7 @@ These are publicly unresolvable or untested as of 2026-05-31. Capture during rea
 | Gap | Where it surfaces |
 |---|---|
 | TDGS 1.3.1 actual licensing cost + commercial-tier terms | First time the user evaluates TDGS for a paid project |
-| atarilover123 fork existence + behavior on user's TD 2025.32820 + M1 Pro | First time the user clones the fork and renders `RADON_Tree.ply` with it |
+| atarilover123 fork existence + behavior on user's TD 2025.32820 + M1 Pro | First time the user clones the fork and renders `tree.ply` with it |
 | POP-based native pipeline performance on M1 Pro at production splat counts | First time the user evaluates Derivative's example `.toe` |
 | OpenSplat M1 compile success rate (libtorch + OpenCV + Xcode build process untested by user) | First time the user wants a local-Mac creation pipeline |
 | yeataro performance vs Tim / TDGS comparison on identical input `.ply` | If yeataro graduates from reference-only to candidate |

@@ -10,7 +10,7 @@ When an item's trigger fires: capture in flow via the growth-protocol's pre-ask 
 
 ### Perform Mode / kiosk deployment gotchas
 
-**Trigger:** ship a TD project to installation / kiosk / live-perform context (current first candidate: RADON_TREE).
+**Trigger:** ship a TD project to installation / kiosk / live-perform context (current first candidate: tree-installation).
 
 **Why deferred from preemptive import:** Wiki content on Perform Mode is descriptive (parameter lists, Window COMP config), but the production-relevant value is **gotchas** that only surface when you ship — error handling without UI, window recreation on resize, fullscreen edge cases, multi-monitor coordination, audio routing under Perform. Importing distilled gotchas from wiki alone would give MEDIUM-confidence guidance without empirical anchoring. Waiting until we ship lets us produce HIGH-confidence dual-sourced entries.
 

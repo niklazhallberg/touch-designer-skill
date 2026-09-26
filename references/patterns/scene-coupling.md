@@ -13,7 +13,7 @@ splat-COMP solutions — they do NOT require reparenting under the rotating COMP
 
 ## Pattern A — Visibility fade by camera distance
 
-**Source:** Roots component in RADON_TREE, 2026-06-02 | **Confidence:** HIGH
+**Source:** Roots component in tree-installation, 2026-06-02 | **Confidence:** HIGH
 
 **Goal:** sibling geometry (e.g. roots, particles, detail layer) is invisible
 when the camera is far ("default zoom") and fades in as the user zooms toward
@@ -56,7 +56,7 @@ Example with `tz` clamped to range [0.5, 6.0] (max-in to max-out):
 
 ## Pattern B — Attached position on a rotating sibling
 
-**Source:** Squirrel + Roots components in RADON_TREE, 2026-06-02 | **Confidence:** HIGH
+**Source:** Squirrel + Roots components in tree-installation, 2026-06-02 | **Confidence:** HIGH
 
 **Goal:** a sibling COMP appears "glued" to a specific position on another
 sibling that rotates continuously around the world Y axis. When the rotating

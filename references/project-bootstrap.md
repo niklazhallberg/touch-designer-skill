@@ -95,7 +95,7 @@ Large third-party TD components (mediapipe-touchdesigner is the canonical exampl
 
 **Backlog — td-new enhancement (not built today):**
 
-`scripts/td-new` could accept a `--with-mediapipe` (or `--with-component <name>`) flag that probes the cache locations above and either symlinks/copies the cached version into the new project, or reaches for download as last resort. Trigger for building: ≥2 instances of a new project re-downloading a component that was already cached locally. Today is instance 1 (Heatmap_Body_Tracker re-downloading what RADON_TREE-era setup already had); next occurrence promotes this from backlog to build.
+`scripts/td-new` could accept a `--with-mediapipe` (or `--with-component <name>`) flag that probes the cache locations above and either symlinks/copies the cached version into the new project, or reaches for download as last resort. Trigger for building: ≥2 instances of a new project re-downloading a component that was already cached locally. Today is instance 1 (a body-tracking project re-downloading what tree-installation-era setup already had); next occurrence promotes this from backlog to build.
 
 ---
 
@@ -257,6 +257,6 @@ These are publicly unresolvable or untested as of 2026-05-31. Capture during rea
 | Central ↔ project-local conflict resolution — table is the intended policy, untested in real divergence | First time Embody auto-regen produces a project-local skill that differs from the central canonical version |
 | Team-share rollout — single-user repo has never been cloned by a second person | First time the user invites a colleague onto the skill |
 | `bin/install.sh` from LS skill — referenced in team-share plan but not yet ported | First time team-share is actually attempted |
-| `.claude/settings.local.json` permissions breadth (Bash + WebFetch unscoped) — fine for single-user, but acceptable for team? | First time team-share rollout is planned in earnest |
+| `.claude/settings.local.json` permissions breadth — default no longer includes `Bash` (opt-in via `settings.trusted-fastpath.example.json`); `WebFetch` still unscoped — acceptable for team? | First time team-share rollout is planned in earnest |
 
 When any of these resolves in real work and survives the growth-protocol gates, it moves into the appropriate section above.

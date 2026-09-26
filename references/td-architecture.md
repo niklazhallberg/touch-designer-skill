@@ -146,7 +146,7 @@ This pattern applies to **user-written Python**. TD's own heavy main-thread oper
 
 ## Parallel pipelines — the "bypasses broken X" anti-pattern
 
-**Source:** RADON_TREE project, 2026-06-17 | **Confidence:** HIGH (own observation: full rip-out cycle from diagnosis through verification of single-pipeline restoration)
+**Source:** tree-installation project, 2026-06-17 | **Confidence:** HIGH (own observation: full rip-out cycle from diagnosis through verification of single-pipeline restoration)
 
 **Symptom.** A TD project contains two scripts orchestrating the same state machine. One is the original intended system (typically a frame-driven `executeDAT`, a callback chain on a CHOP, or an `onCook` handler). The other is a duplicate script (often a `panelexec` with `run(..., delayFrames=N)` callbacks) marked with a comment along the lines of `# bypasses broken X` / `# autonomous pipeline` / `# parallel flow`. Bugs that look like race conditions appear: state flips back and forth, timing is off by ~1 frame, fade tweens don't fire, transient values from one pipeline get clobbered by the other.
 

@@ -103,7 +103,7 @@ The supported tasks are: Face Detection + Face Landmarks, Hand Tracking + Gestur
 
 ## Parameter names + defaults (v0.5.2, verified live)
 
-**Source:** live verification 2026-06-01 during Heatmap_Body_Tracker Phase 0 bootstrap (mediapipe-touchdesigner v0.5.2 on TD 2025.32820, M1 Pro) | Date: 2026-06-01 | **Confidence:** HIGH (all values read from live `get_op` output on the component, not from docs)
+**Source:** live verification 2026-06-01 during a body-tracking project Phase 0 bootstrap (mediapipe-touchdesigner v0.5.2 on TD 2025.32820, M1 Pro) | Date: 2026-06-01 | **Confidence:** HIGH (all values read from live `get_op` output on the component, not from docs)
 
 Built-in detector toggles, all on the top-level Custom parameter page:
 
@@ -131,7 +131,7 @@ Segmentation model selection:
 
 ## Performance reality on M1 Pro at default settings
 
-**Source:** live measurement 2026-06-01 during Heatmap_Body_Tracker Phase 0, M1 Pro / TD 2025.32820 / FaceTime HD Camera 1280×720 | Date: 2026-06-01 | **Confidence:** HIGH (measured via the component's own `realtimeCalculatorCHOP` channels, hard numbers)
+**Source:** live measurement 2026-06-01 during a body-tracking project Phase 0, M1 Pro / TD 2025.32820 / FaceTime HD Camera 1280×720 | Date: 2026-06-01 | **Confidence:** HIGH (measured via the component's own `realtimeCalculatorCHOP` channels, hard numbers)
 
 With Pose Landmarker (`Posemodeltype = full`) + Image Segmentation (`Smodeltype = selfieMulticlass`) + `Pnumposes = 5` all enabled:
 
@@ -162,7 +162,7 @@ Don't optimize blindly — measure after each lever via the same `realtimeCalcul
 
 ## Subnet structure + canonical output paths (v0.5.2)
 
-**Source:** live `find_children` on the MediaPipe COMP 2026-06-01 during Heatmap_Body_Tracker Phase 0 | Date: 2026-06-01 | **Confidence:** HIGH (verified by direct subnet enumeration)
+**Source:** live `find_children` on the MediaPipe COMP 2026-06-01 during a body-tracking project Phase 0 | Date: 2026-06-01 | **Confidence:** HIGH (verified by direct subnet enumeration)
 
 The MediaPipe COMP exposes 71 children. Canonical Phase 1+ tap points:
 
@@ -181,7 +181,7 @@ The MediaPipe COMP exposes 71 children. Canonical Phase 1+ tap points:
 
 ## MCP drop-in pattern: `loadTox()` is cleaner than `create_op + externaltox`
 
-**Source:** verified working 2026-06-01 during Heatmap_Body_Tracker Phase 0 drop-in | Date: 2026-06-01 | **Confidence:** HIGH (used in production successfully today)
+**Source:** verified working 2026-06-01 during a body-tracking project Phase 0 drop-in | Date: 2026-06-01 | **Confidence:** HIGH (used in production successfully today)
 
 To programmatically drop a vendored .tox component into `/project1` (or any parent), use:
 

@@ -191,4 +191,4 @@ The two ends of the trade-off:
 3. Same tool repeated 3+ times with no branching between? → `batch_operations` (best of both worlds: one round-trip, per-step error position).
 4. Mixed: write the loop-heavy part as one `execute_python`; do the visible-error-needed steps (heavy creates, parameter sets that must succeed) as separate MCP calls afterward.
 
-**Source:** RADON_TREE topology+cook-hang sessions documented in `references/td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" | **Confidence:** HIGH (own empiry — observed end-to-end across multiple sessions: the silent hang reproduced under stacked `execute_python` builds, the per-call MCP variant did not exhibit the hang when paired with bypass-first)
+**Source:** tree-installation topology+cook-hang sessions documented in `references/td-gotchas.md` § "Topology change + large cook = TD hangs — bypass during refactor" | **Confidence:** HIGH (own empiry — observed end-to-end across multiple sessions: the silent hang reproduced under stacked `execute_python` builds, the per-call MCP variant did not exhibit the hang when paired with bypass-first)
